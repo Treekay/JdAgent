@@ -1,0 +1,40 @@
+import { MongoClient } from "mongodb";
+
+let client;
+let db;
+
+export async function connectDatabase() {
+  if (!process.env.MONGO_URI) {
+    return null;
+  }
+
+  if (db) {
+    return db;
+  }
+
+  client = new MongoClient(process.env.MONGO_URI);
+  await client.connect();
+  db = client.db(process.env.MONGO_DB || "job_assistant");
+  await db.collection("runs").createIndex({ createdAt: -1 });
+  return db;
+}
+
+export async function saveRun(run) {
+  const database = await connectDatabase();
+  if (!database) {
+    return null;
+  }
+
+  const result = await database.collection("runs").insertOne({
+    ...run,
+    createdAt: new Date()
+  });
+
+  return result.insertedId;
+}
+
+export async function closeDatabase() {
+  if (client) {
+    await client.close();
+  }
+}
