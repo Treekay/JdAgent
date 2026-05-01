@@ -1,4 +1,5 @@
 import { MongoClient } from "mongodb";
+import { extractJobInfo } from "./agent.js";
 
 let client;
 let db;
@@ -53,10 +54,28 @@ export async function listRuns(limit = 20) {
     .limit(limit)
     .toArray();
 
-  return runs.map((run) => ({
-    ...run,
-    _id: run._id.toString()
-  }));
+  return runs.map((run) => {
+    const extracted = extractJobInfo(run.jobDescription || "");
+    const companyName = run.companyName || run.result?.companyName || extracted.companyName || "";
+    const roleTitle = run.roleTitle || run.result?.roleTitle || extracted.roleTitle || "";
+    const displayTitle =
+      companyName && roleTitle
+        ? `${companyName} - ${roleTitle}`
+        : companyName || roleTitle || "Saved match";
+
+    return {
+      ...run,
+      _id: run._id.toString(),
+      companyName,
+      roleTitle,
+      displayTitle,
+      result: {
+        ...(run.result || {}),
+        companyName,
+        roleTitle
+      }
+    };
+  });
 }
 
 export async function closeDatabase() {

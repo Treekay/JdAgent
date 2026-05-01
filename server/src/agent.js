@@ -51,11 +51,11 @@ function splitSentences(text) {
     .filter(Boolean);
 }
 
-function cleanJobValue(value = "") {
+function cleanJobValue(value = "", maxLength = 90) {
   return value
     .replace(/^[\s:|-]+|[\s:|,-]+$/g, "")
     .replace(/\s+/g, " ")
-    .slice(0, 90);
+    .slice(0, maxLength);
 }
 
 function pickLabeledValue(lines, labels) {
@@ -128,14 +128,23 @@ function findRoleTitle(lines) {
     }
   }
 
-  const titleWords = /(engineer|developer|designer|manager|analyst|consultant|specialist|assistant|coordinator|lead|architect|administrator)/i;
+  if (lines.some((line) => /\bpaid\s+internship\b/i.test(line))) {
+    return "Paid Internship";
+  }
+
+  if (lines.some((line) => /\binternship\b/i.test(line))) {
+    return "Internship";
+  }
+
+  const titleWords =
+    /\b(engineer|developer|designer|manager|analyst|consultant|specialist|assistant|coordinator|lead|architect|administrator|intern|internship)\b/i;
   return cleanJobValue(lines.find((line) => titleWords.test(line) && line.length <= 90) || "");
 }
 
-function extractJobInfo(jobDescription) {
+export function extractJobInfo(jobDescription) {
   const lines = jobDescription
     .split(/\r?\n/)
-    .map((line) => cleanJobValue(line))
+    .map((line) => cleanJobValue(line, 180))
     .filter((line) => line.length >= 2 && !/^https?:\/\//i.test(line));
 
   return {

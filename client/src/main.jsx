@@ -105,18 +105,20 @@ function formatRunDate(value) {
 function getRunResult(run) {
   return {
     id: run._id,
+    ...(run.result || {}),
     companyName: run.companyName || run.result?.companyName || "",
-    roleTitle: run.roleTitle || run.result?.roleTitle || "",
-    ...(run.result || {})
+    roleTitle: run.roleTitle || run.result?.roleTitle || ""
   };
 }
 
 function getRunTitle(run) {
+  if (run.displayTitle) return run.displayTitle;
+
   const companyName = run.companyName || run.result?.companyName;
   const roleTitle = run.roleTitle || run.result?.roleTitle;
 
-  if (companyName && roleTitle) return `${roleTitle} at ${companyName}`;
-  return roleTitle || companyName || run.cvFileName || "Saved run";
+  if (companyName && roleTitle) return `${companyName} - ${roleTitle}`;
+  return companyName || roleTitle || "Saved match";
 }
 
 function App() {

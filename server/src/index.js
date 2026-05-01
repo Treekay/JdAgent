@@ -16,13 +16,14 @@ const app = express();
 const port = Number(process.env.PORT || 4000);
 const allowedOrigins = new Set(
   [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     ...(process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "")
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean)
   ]
 );
-const localDevHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const upload = multer({
   dest: uploadDir,
   limits: {
@@ -31,19 +32,7 @@ const upload = multer({
 });
 
 function isAllowedOrigin(origin) {
-  if (!origin || allowedOrigins.has(origin)) {
-    return true;
-  }
-
-  try {
-    const url = new URL(origin);
-    return (
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      localDevHosts.has(url.hostname)
-    );
-  } catch {
-    return false;
-  }
+  return !origin || allowedOrigins.has(origin);
 }
 
 app.use(
