@@ -6,5 +6,6 @@ uploads/*
 !uploads/.gitkeep
 server/uploads/*
 !server/uploads/.gitkeep
+server/server/uploads/*
 npm-debug.log*
 *.log

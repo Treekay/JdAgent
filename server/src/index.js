@@ -2,30 +2,79 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import multer from "multer";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { extractCvText } from "./extractText.js";
 import { runApplicationAgent } from "./agent.js";
-import { saveRun } from "./database.js";
+import { listRuns, saveRun } from "./database.js";
 
 dotenv.config();
 
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.resolve(currentDir, "../uploads");
 const app = express();
 const port = Number(process.env.PORT || 4000);
+const allowedOrigins = new Set(
+  [
+    ...(process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  ]
+);
+const localDevHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const upload = multer({
-  dest: "server/uploads",
+  dest: uploadDir,
   limits: {
     fileSize: 8 * 1024 * 1024
   }
 });
 
+function isAllowedOrigin(origin) {
+  if (!origin || allowedOrigins.has(origin)) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      localDevHosts.has(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || "http://localhost:5173"
+    origin(origin, callback) {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by CORS`));
+    }
   })
 );
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (_request, response) => {
   response.json({ ok: true });
+});
+
+app.get("/api/applications/runs", async (_request, response) => {
+  try {
+    const runs = await listRuns();
+    response.json({ runs });
+  } catch (error) {
+    console.error(error);
+    response.status(500).json({
+      message: "Could not load previous runs.",
+      detail: process.env.NODE_ENV === "production" ? undefined : error.message
+    });
+  }
 });
 
 app.post("/api/applications/run", upload.single("cv"), async (request, response) => {
@@ -43,6 +92,8 @@ app.post("/api/applications/run", upload.single("cv"), async (request, response)
     const cvText = await extractCvText(request.file);
     const result = await runApplicationAgent({ cvText, jobDescription });
     const runId = await saveRun({
+      companyName: result.companyName || "",
+      roleTitle: result.roleTitle || "",
       cvFileName: request.file.originalname,
       jobDescription,
       cvText,

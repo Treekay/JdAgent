@@ -33,6 +33,32 @@ export async function saveRun(run) {
   return result.insertedId;
 }
 
+export async function listRuns(limit = 20) {
+  const database = await connectDatabase();
+  if (!database) {
+    return [];
+  }
+
+  const runs = await database
+    .collection("runs")
+    .find(
+      {},
+      {
+        projection: {
+          cvText: 0
+        }
+      }
+    )
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .toArray();
+
+  return runs.map((run) => ({
+    ...run,
+    _id: run._id.toString()
+  }));
+}
+
 export async function closeDatabase() {
   if (client) {
     await client.close();

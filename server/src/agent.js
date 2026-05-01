@@ -51,6 +51,99 @@ function splitSentences(text) {
     .filter(Boolean);
 }
 
+function cleanJobValue(value = "") {
+  return value
+    .replace(/^[\s:|-]+|[\s:|,-]+$/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 90);
+}
+
+function pickLabeledValue(lines, labels) {
+  for (const line of lines) {
+    for (const label of labels) {
+      const match = line.match(new RegExp(`^${label}\\s*[:：-]\\s*(.+)$`, "i"));
+      if (match?.[1]) {
+        return cleanJobValue(match[1]);
+      }
+    }
+  }
+
+  return "";
+}
+
+function findCompanyName(lines) {
+  const labeled = pickLabeledValue(lines, [
+    "company",
+    "company name",
+    "employer",
+    "organisation",
+    "organization"
+  ]);
+
+  if (labeled) {
+    return labeled;
+  }
+
+  for (const line of lines) {
+    const aboutMatch = line.match(/^about\s+(.+)$/i);
+    if (aboutMatch?.[1] && !/^(us|the company|our company|role)$/i.test(aboutMatch[1])) {
+      return cleanJobValue(aboutMatch[1]);
+    }
+  }
+
+  const atLine = lines.find((line) => /\bat\s+([A-Z][\w&.' -]{1,70})$/i.test(line));
+  if (atLine) {
+    return cleanJobValue(atLine.replace(/^.*\bat\s+/i, ""));
+  }
+
+  const aboutIndex = lines.findIndex((line) => /^about\s+(us|the company|our company)$/i.test(line));
+  if (aboutIndex > 0) {
+    return cleanJobValue(lines[aboutIndex - 1]);
+  }
+
+  return "";
+}
+
+function findRoleTitle(lines) {
+  const labeled = pickLabeledValue(lines, [
+    "role",
+    "role title",
+    "title",
+    "job title",
+    "position",
+    "position title"
+  ]);
+
+  if (labeled) {
+    return labeled;
+  }
+
+  for (const line of lines) {
+    const lookingForMatch = line.match(
+      /\b(?:is\s+)?looking\s+for\s+(?:an?\s+)?(.+?)(?:\s+with|\s+to|\s+for|[.。]|$)/i
+    );
+
+    if (lookingForMatch?.[1]) {
+      return cleanJobValue(lookingForMatch[1]);
+    }
+  }
+
+  const titleWords = /(engineer|developer|designer|manager|analyst|consultant|specialist|assistant|coordinator|lead|architect|administrator)/i;
+  return cleanJobValue(lines.find((line) => titleWords.test(line) && line.length <= 90) || "");
+}
+
+function extractJobInfo(jobDescription) {
+  const lines = jobDescription
+    .split(/\r?\n/)
+    .map((line) => cleanJobValue(line))
+    .filter((line) => line.length >= 2 && !/^https?:\/\//i.test(line));
+
+  return {
+    companyName: findCompanyName(lines),
+    roleTitle: findRoleTitle(lines)
+  };
+}
+
 function extractHighlights(text, skills) {
   const sentences = splitSentences(text);
   const highlights = [];
@@ -110,18 +203,16 @@ function createCvSuggestions({ analysis }) {
   return suggestions;
 }
 
-function createCoverLetter({ analysis, jobDescription }) {
-  const roleLine = (
-    splitSentences(jobDescription)[0]?.slice(0, 160) ||
-    "the role described"
-  ).replace(/[.!?]+$/, "");
+function createCoverLetter({ analysis, jobDescription, jobInfo }) {
+  const roleLine = jobInfo.roleTitle || "the role";
+  const companyLine = jobInfo.companyName ? ` at ${jobInfo.companyName}` : "";
   const matched = analysis.matchedSkills.slice(0, 4).join(", ") || "the core requirements";
   const missing = analysis.missingSkills.slice(0, 2).join(" and ");
 
   return [
     "Dear Hiring Manager,",
     "",
-    `I am excited to apply for ${roleLine}. My background aligns strongly with the role through hands-on experience in ${matched}, and I am especially drawn to work that turns product requirements into reliable, user-focused systems.`,
+    `I am excited to apply for ${roleLine}${companyLine}. My background aligns strongly with the role through hands-on experience in ${matched}, and I am especially drawn to work that turns product requirements into reliable, user-focused systems.`,
     "",
     `In previous work, I have translated ambiguous needs into practical implementations, collaborated across technical and non-technical stakeholders, and kept delivery focused on measurable outcomes. I would bring that same combination of engineering judgment, communication, and ownership to your team.`,
     "",
@@ -150,13 +241,15 @@ function createInterviewQuestions({ analysis }) {
 
 function localAgentRun({ cvText, jobDescription }) {
   const analysis = analyzeMatch({ cvText, jobDescription });
+  const jobInfo = extractJobInfo(jobDescription);
 
   return {
+    ...jobInfo,
     matchScore: analysis.matchScore,
     missingSkills: analysis.missingSkills,
     matchedSkills: analysis.matchedSkills,
     tailoredCvSuggestions: createCvSuggestions({ analysis }),
-    coverLetter: createCoverLetter({ analysis, jobDescription }),
+    coverLetter: createCoverLetter({ analysis, jobDescription, jobInfo }),
     interviewQuestions: createInterviewQuestions({ analysis }),
     agentTrace: [
       { tool: "extract_cv_profile", status: "completed" },
@@ -210,7 +303,7 @@ async function openAiAgentRun({ cvText, jobDescription }) {
       {
         role: "system",
         content:
-          "You are an agentic job application assistant. Return strict JSON with matchScore, missingSkills, matchedSkills, tailoredCvSuggestions, coverLetter, interviewQuestions, and agentTrace. Use the provided tool result as grounded evidence."
+          "You are an agentic job application assistant. Return strict JSON with companyName, roleTitle, matchScore, missingSkills, matchedSkills, tailoredCvSuggestions, coverLetter, interviewQuestions, and agentTrace. Use the provided tool result as grounded evidence. Do not invent a company name. If the company is unclear, use an empty string and address the letter to the Hiring Manager."
       },
       {
         role: "user",

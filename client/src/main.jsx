@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BriefcaseBusiness,
   CheckCircle2,
   FileText,
+  History,
   Loader2,
   MessageSquareText,
   Send,
@@ -14,6 +15,8 @@ import {
 import "./styles.css";
 
 const sampleResult = {
+  companyName: "",
+  roleTitle: "this role",
   matchScore: 78,
   matchedSkills: ["react", "node", "express", "mongodb", "openai"],
   missingSkills: ["testing", "docker"],
@@ -37,6 +40,8 @@ const sampleResult = {
     { tool: "draft_cover_letter", status: "completed" }
   ]
 };
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
 function ScoreRing({ score }) {
   const angle = Math.max(0, Math.min(score, 100)) * 3.6;
@@ -84,12 +89,45 @@ function Panel({ icon: Icon, title, children }) {
   );
 }
 
+function formatRunDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function getRunResult(run) {
+  return {
+    id: run._id,
+    companyName: run.companyName || run.result?.companyName || "",
+    roleTitle: run.roleTitle || run.result?.roleTitle || "",
+    ...(run.result || {})
+  };
+}
+
+function getRunTitle(run) {
+  const companyName = run.companyName || run.result?.companyName;
+  const roleTitle = run.roleTitle || run.result?.roleTitle;
+
+  if (companyName && roleTitle) return `${roleTitle} at ${companyName}`;
+  return roleTitle || companyName || run.cvFileName || "Saved run";
+}
+
 function App() {
   const [cvFile, setCvFile] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
   const [result, setResult] = useState(sampleResult);
+  const [runs, setRuns] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isLoadingRuns, setIsLoadingRuns] = useState(false);
   const [error, setError] = useState("");
+  const [historyError, setHistoryError] = useState("");
 
   const canRun = Boolean(cvFile && jobDescription.trim() && !isRunning);
 
@@ -98,6 +136,30 @@ function App() {
     if (result?.id) return "Latest run saved";
     return "Demo output loaded";
   }, [isRunning, result]);
+
+  async function loadRuns() {
+    setIsLoadingRuns(true);
+    setHistoryError("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/applications/runs`);
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Could not load previous runs");
+      }
+
+      setRuns(payload.runs || []);
+    } catch (loadError) {
+      setHistoryError(loadError.message);
+    } finally {
+      setIsLoadingRuns(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRuns();
+  }, []);
 
   async function runAgent(event) {
     event.preventDefault();
@@ -109,17 +171,18 @@ function App() {
       formData.append("cv", cvFile);
       formData.append("jobDescription", jobDescription);
 
-      const response = await fetch("http://localhost:4000/api/applications/run", {
+      const response = await fetch(`${API_BASE_URL}/api/applications/run`, {
         method: "POST",
         body: formData
       });
 
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload.message || "Agent run failed");
       }
 
       setResult(payload);
+      await loadRuns();
     } catch (runError) {
       setError(runError.message);
     } finally {
@@ -170,34 +233,68 @@ function App() {
             Run Agent
           </button>
           {error ? <p className="error">{error}</p> : <p className="status">{statusCopy}</p>}
+
+          <section className="historyBlock">
+            <div className="historyHeader">
+              <div>
+                <History size={18} />
+                <span>Previous matches</span>
+              </div>
+              <button type="button" onClick={loadRuns} disabled={isLoadingRuns}>
+                {isLoadingRuns ? "Loading" : "Refresh"}
+              </button>
+            </div>
+            {historyError ? <p className="error">{historyError}</p> : null}
+            {!historyError && !runs.length ? (
+              <p className="muted">No saved runs yet.</p>
+            ) : (
+              <div className="historyList">
+                {runs.map((run) => (
+                  <button
+                    className="historyItem"
+                    key={run._id}
+                    type="button"
+                    onClick={() => setResult(getRunResult(run))}
+                  >
+                    <span>{getRunTitle(run)}</span>
+                    <small>
+                      {run.result?.matchScore ?? "--"}% match
+                      {run.createdAt ? ` · ${formatRunDate(run.createdAt)}` : ""}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
         </form>
       </section>
 
       <section className="resultsGrid">
         <Panel icon={Target} title="Match Score">
           <div className="scoreLayout">
-            <ScoreRing score={result.matchScore} />
+            <ScoreRing score={result.matchScore || 0} />
             <div>
-              <h3>Role alignment</h3>
+              <h3>{result.roleTitle || "Role alignment"}</h3>
               <p>
-                The score reflects detected overlap between CV evidence and job
-                requirements, then the agent drafts supporting material from that analysis.
+                {result.companyName
+                  ? `Prepared for ${result.companyName}. The score reflects detected overlap between CV evidence and job requirements.`
+                  : "The score reflects detected overlap between CV evidence and job requirements, then the agent drafts supporting material from that analysis."}
               </p>
             </div>
           </div>
         </Panel>
 
         <Panel icon={CheckCircle2} title="Matched Skills">
-          <PillList items={result.matchedSkills} emptyLabel="No matched skills detected yet." />
+          <PillList items={result.matchedSkills || []} emptyLabel="No matched skills detected yet." />
         </Panel>
 
         <Panel icon={BriefcaseBusiness} title="Missing Skills">
-          <PillList items={result.missingSkills} emptyLabel="No obvious gaps found." />
+          <PillList items={result.missingSkills || []} emptyLabel="No obvious gaps found." />
         </Panel>
 
         <Panel icon={FileText} title="Tailored CV Suggestions">
           <ul className="cleanList">
-            {result.tailoredCvSuggestions.map((item) => (
+            {(result.tailoredCvSuggestions || []).map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
@@ -209,7 +306,7 @@ function App() {
 
         <Panel icon={Sparkles} title="Interview Questions">
           <ul className="cleanList">
-            {result.interviewQuestions.map((item) => (
+            {(result.interviewQuestions || []).map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
@@ -218,7 +315,7 @@ function App() {
         <section className="tracePanel">
           <h2>Agent Trace</h2>
           <div className="traceList">
-            {result.agentTrace.map((step) => (
+            {(result.agentTrace || []).map((step) => (
               <div className="traceItem" key={step.tool}>
                 <CheckCircle2 size={16} />
                 <span>{step.tool.replaceAll("_", " ")}</span>
