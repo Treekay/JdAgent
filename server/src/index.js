@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractCvText } from "./extractText.js";
 import { runApplicationAgent } from "./agent.js";
-import { listRuns, saveRun } from "./database.js";
+import { deleteCv, deleteRun, getCv, listCvs, listRuns, saveCv, saveRun } from "./database.js";
 
 dotenv.config();
 
@@ -35,6 +35,60 @@ function isAllowedOrigin(origin) {
   return !origin || allowedOrigins.has(origin);
 }
 
+function stripHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function loadJobDescription({ jobDescription = "", jobUrl = "" }) {
+  const pastedDescription = jobDescription.trim();
+  const url = jobUrl.trim();
+
+  if (pastedDescription) {
+    return pastedDescription;
+  }
+
+  if (!url) {
+    return "";
+  }
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "ApplyAgent/1.0"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Could not load job URL (${response.status}).`);
+  }
+
+  const content = await response.text();
+  const type = response.headers.get("content-type") || "";
+  return type.includes("html") ? stripHtml(content) : content.trim();
+}
+
+function asyncRoute(handler) {
+  return async (request, response) => {
+    try {
+      await handler(request, response);
+    } catch (error) {
+      console.error(error);
+      response.status(500).json({
+        message: error.message || "Request failed.",
+        detail: process.env.NODE_ENV === "production" ? undefined : error.message
+      });
+    }
+  };
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -47,60 +101,114 @@ app.use(
     }
   })
 );
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "2mb" }));
 
 app.get("/api/health", (_request, response) => {
   response.json({ ok: true });
 });
 
-app.get("/api/applications/runs", async (_request, response) => {
-  try {
-    const runs = await listRuns();
-    response.json({ runs });
-  } catch (error) {
-    console.error(error);
-    response.status(500).json({
-      message: "Could not load previous runs.",
-      detail: process.env.NODE_ENV === "production" ? undefined : error.message
-    });
-  }
-});
+app.get(
+  "/api/cvs",
+  asyncRoute(async (_request, response) => {
+    response.json({ cvs: await listCvs() });
+  })
+);
 
-app.post("/api/applications/run", upload.single("cv"), async (request, response) => {
-  try {
-    const jobDescription = request.body.jobDescription?.trim();
-
+app.post(
+  "/api/cvs",
+  upload.single("cv"),
+  asyncRoute(async (request, response) => {
     if (!request.file) {
-      return response.status(400).json({ message: "Upload a CV file first." });
+      response.status(400).json({ message: "Upload a CV file first." });
+      return;
     }
 
-    if (!jobDescription) {
-      return response.status(400).json({ message: "Paste a job description first." });
+    const text = await extractCvText(request.file);
+    const cvId = await saveCv({
+      fileName: request.file.originalname,
+      mimeType: request.file.mimetype,
+      size: request.file.size,
+      text
+    });
+
+    response.status(201).json({
+      cv: {
+        _id: cvId.toString(),
+        fileName: request.file.originalname,
+        mimeType: request.file.mimetype,
+        size: request.file.size,
+        createdAt: new Date().toISOString()
+      }
+    });
+  })
+);
+
+app.delete(
+  "/api/cvs/:id",
+  asyncRoute(async (request, response) => {
+    const deleted = await deleteCv(request.params.id);
+    response.json({ deleted });
+  })
+);
+
+app.get(
+  "/api/applications/runs",
+  asyncRoute(async (_request, response) => {
+    response.json({ runs: await listRuns() });
+  })
+);
+
+app.delete(
+  "/api/applications/runs/:id",
+  asyncRoute(async (request, response) => {
+    const deleted = await deleteRun(request.params.id);
+    response.json({ deleted });
+  })
+);
+
+app.post(
+  "/api/applications/run",
+  asyncRoute(async (request, response) => {
+    const { cvId, jobDescription = "", jobUrl = "" } = request.body;
+
+    if (!cvId) {
+      response.status(400).json({ message: "Select or upload a CV first." });
+      return;
     }
 
-    const cvText = await extractCvText(request.file);
-    const result = await runApplicationAgent({ cvText, jobDescription });
+    const cv = await getCv(cvId);
+    if (!cv) {
+      response.status(404).json({ message: "Selected CV was not found." });
+      return;
+    }
+
+    const loadedJobDescription = await loadJobDescription({ jobDescription, jobUrl });
+    if (!loadedJobDescription) {
+      response.status(400).json({ message: "Paste a job description or provide a job link." });
+      return;
+    }
+
+    const result = await runApplicationAgent({
+      cvText: cv.text,
+      jobDescription: loadedJobDescription,
+      jobUrl
+    });
     const runId = await saveRun({
+      cvId: cv._id,
+      cvFileName: cv.fileName,
       companyName: result.companyName || "",
       roleTitle: result.roleTitle || "",
-      cvFileName: request.file.originalname,
-      jobDescription,
-      cvText,
+      jobDescription: loadedJobDescription,
+      jobUrl,
       result
     });
 
     response.json({
-      id: runId?.toString() || null,
+      id: runId.toString(),
       ...result
     });
-  } catch (error) {
-    console.error(error);
-    response.status(500).json({
-      message: "The agent could not complete this run.",
-      detail: process.env.NODE_ENV === "production" ? undefined : error.message
-    });
-  }
-});
+  })
+);
 
 app.listen(port, () => {
   console.log(`Job assistant API listening on http://localhost:${port}`);

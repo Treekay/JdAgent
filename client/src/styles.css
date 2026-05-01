@@ -18,11 +18,8 @@ body {
 }
 
 button,
+input,
 textarea {
-  font: inherit;
-}
-
-button {
   font: inherit;
 }
 
@@ -104,8 +101,13 @@ button {
   padding: 24px;
 }
 
+.cvBlock {
+  display: grid;
+  gap: 12px;
+}
+
 .uploadBox {
-  min-height: 150px;
+  min-height: 132px;
   display: grid;
   place-items: center;
   gap: 5px;
@@ -136,7 +138,7 @@ button {
 .status,
 .muted,
 .traceItem small,
-.historyItem small {
+.recordItem small {
   color: #667970;
   font-size: 0.88rem;
 }
@@ -146,6 +148,30 @@ button {
   flex-direction: column;
   gap: 9px;
   font-weight: 700;
+}
+
+.urlInput {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.urlInput:focus-within {
+  border-color: #13a881;
+  box-shadow: 0 0 0 4px rgba(19, 168, 129, 0.12);
+}
+
+.urlInput input {
+  min-width: 0;
+  height: 44px;
+  border: 0;
+  color: #17211d;
+  outline: none;
 }
 
 .jdBox textarea {
@@ -177,9 +203,29 @@ button {
   cursor: pointer;
 }
 
+.secondaryButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  color: #17463a;
+  background: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
 .runButton:disabled {
   color: #7d897f;
   background: #e3e7e1;
+  cursor: not-allowed;
+}
+
+.secondaryButton:disabled {
+  color: #8a9992;
+  background: #f2f5f2;
   cursor: not-allowed;
 }
 
@@ -231,14 +277,22 @@ button {
   cursor: not-allowed;
 }
 
-.historyList {
+.historyList,
+.recordList {
   display: grid;
   gap: 8px;
   max-height: 230px;
   overflow: auto;
 }
 
-.historyItem {
+.recordItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.recordItem > button:first-child {
   display: grid;
   gap: 3px;
   width: 100%;
@@ -251,15 +305,35 @@ button {
   cursor: pointer;
 }
 
-.historyItem:hover {
+.recordItem.selected > button:first-child,
+.recordItem > button:first-child:hover {
   border-color: #9fb7ad;
 }
 
-.historyItem span {
+.recordItem.selected > button:first-child {
+  background: #e8f5ef;
+}
+
+.recordItem span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 750;
+}
+
+.iconButton {
+  display: grid;
+  width: 42px;
+  place-items: center;
+  color: #8f2d23;
+  background: #fff7f5;
+  border: 1px solid #f1c8c2;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: #ffece8;
 }
 
 .resultsGrid {
