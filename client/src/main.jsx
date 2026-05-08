@@ -19,33 +19,61 @@ import "./styles.css";
 const sampleResult = {
   companyName: "",
   roleTitle: "this role",
+  fitScore: 78,
   matchScore: 78,
-  matchedSkills: ["react", "node", "express", "mongodb", "openai"],
-  missingSkills: ["testing", "docker"],
-  tailoredCvSuggestions: [
+  matchedRequirements: [
+    {
+      id: "demo_1",
+      name: "React application experience",
+      priority: "high",
+      status: "matched",
+      rationale: "The CV includes React project work.",
+      evidence: ["Built user-facing React interfaces."]
+    },
+    {
+      id: "demo_2",
+      name: "Node API experience",
+      priority: "medium",
+      status: "matched",
+      rationale: "The CV includes Node and Express experience.",
+      evidence: ["Implemented API workflows with Node and Express."]
+    }
+  ],
+  missingRequirements: [
+    {
+      id: "demo_3",
+      name: "Docker production experience",
+      priority: "medium",
+      status: "missing",
+      rationale: "No Docker evidence was found in the demo CV.",
+      evidence: []
+    }
+  ],
+  evidence: [
+    {
+      requirementId: "demo_1",
+      requirementName: "React application experience",
+      evidence: "Built user-facing React interfaces."
+    }
+  ],
+  recommendations: [
     "Move React, Node, Express, and MongoDB into the top skills summary so the recruiter sees the strongest overlap immediately.",
     "Add honest adjacent experience for testing and Docker or include a short learning/project note if you are building these skills.",
     "Rewrite two recent role bullets to include measurable outcomes, scope, and the tools used."
   ],
-  coverLetter:
-    "Dear Hiring Manager,\n\nI am excited to apply for this role. My background aligns strongly with the role through hands-on experience in React, Node, Express, MongoDB, and OpenAI integrations.\n\nIn previous work, I have translated ambiguous needs into practical implementations, collaborated across technical and non-technical stakeholders, and kept delivery focused on measurable outcomes.\n\nThank you for your time and consideration. I would welcome the chance to discuss how my experience can support your hiring goals.\n\nSincerely,",
-  interviewQuestions: [
-    "Tell me about a project where you used React to solve a business problem.",
-    "How would you design the backend for an agent-based workflow?",
-    "How do you evaluate whether generated content is reliable enough to send?",
-    "What tradeoffs would you make between speed, accuracy, and explainability?"
-  ],
-  agentTrace: [{ tool: "ai_cv_job_analysis", status: "completed" }]
+  finalReport:
+    "## Demo Fit Report\n\nThe candidate shows strong alignment with the React and Node portions of the role. The main improvement area is adding concrete Docker or deployment evidence before applying.",
+  agentTrace: []
 };
 const defaultAgentTrace = [
-  { tool: "read_cv", status: "completed" },
-  { tool: "read_job_description", status: "completed" },
-  { tool: "extract_role_requirements", status: "completed" },
-  { tool: "compare_cv_evidence", status: "completed" },
-  { tool: "score_match", status: "completed" },
-  { tool: "identify_skill_gaps", status: "completed" },
-  { tool: "draft_cover_letter", status: "completed" },
-  { tool: "prepare_interview_questions", status: "completed" }
+  { id: "parse_resume", name: "Parse Resume", status: "completed", summary: "Demo resume parsed" },
+  { id: "parse_job_description", name: "Parse Job Description", status: "completed", summary: "Demo JD parsed" },
+  { id: "extract_candidate_profile", name: "Extract Candidate Profile", status: "completed", summary: "Candidate profile extracted" },
+  { id: "extract_job_requirements", name: "Extract Job Requirements", status: "completed", summary: "Requirements extracted" },
+  { id: "match_requirements", name: "Match Requirements", status: "completed", summary: "Requirements matched" },
+  { id: "calculate_fit_score", name: "Calculate Fit Score", status: "completed", summary: "Weighted score calculated" },
+  { id: "generate_recommendations", name: "Generate Recommendations", status: "completed", summary: "Recommendations generated" },
+  { id: "generate_final_report", name: "Generate Final Report", status: "completed", summary: "Final report generated" }
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
@@ -148,27 +176,105 @@ function normalizeTrace(trace) {
     .map((step) => {
       if (typeof step === "string") {
         return {
-          tool: step.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
-          status: "completed"
+          id: step.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
+          name: step,
+          status: "completed",
+          summary: ""
         };
       }
 
       return {
-        tool: step?.tool || step?.name || step?.step || "ai_analysis",
-        status: step?.status || "completed"
+        id: step?.id || step?.tool || step?.name || step?.step || "agent_step",
+        name: step?.name || step?.tool || step?.step || "Agent Step",
+        status: step?.status || "completed",
+        summary: step?.summary || "",
+        startedAt: step?.startedAt || null,
+        completedAt: step?.completedAt || null
       };
     })
-    .filter((step) => step.tool);
+    .filter((step) => step.name);
 
-  const uniqueTools = new Set(normalized.map((step) => step.tool));
-  return normalized.length && uniqueTools.size > 1 ? normalized : defaultAgentTrace;
+  const uniqueNames = new Set(normalized.map((step) => step.name));
+  return normalized.length && uniqueNames.size > 1 ? normalized : defaultAgentTrace;
+}
+
+function requirementFromName(name, index, status) {
+  return {
+    id: `${status}_${index + 1}`,
+    name,
+    priority: "medium",
+    status,
+    rationale: "",
+    evidence: []
+  };
 }
 
 function normalizeResult(nextResult) {
+  const matchedRequirements =
+    nextResult?.matchedRequirements ||
+    (nextResult?.matchedSkills || []).map((name, index) =>
+      requirementFromName(name, index, "matched")
+    );
+  const missingRequirements =
+    nextResult?.missingRequirements ||
+    (nextResult?.missingSkills || []).map((name, index) =>
+      requirementFromName(name, index, "missing")
+    );
+
   return {
     ...nextResult,
+    fitScore: nextResult?.fitScore ?? nextResult?.matchScore ?? 0,
+    matchScore: nextResult?.matchScore ?? nextResult?.fitScore ?? 0,
+    matchedRequirements,
+    missingRequirements,
+    evidence: nextResult?.evidence || [],
+    recommendations: nextResult?.recommendations || nextResult?.tailoredCvSuggestions || [],
+    finalReport: nextResult?.finalReport || nextResult?.coverLetter || "",
     agentTrace: normalizeTrace(nextResult?.agentTrace)
   };
+}
+
+function RequirementList({ items, emptyLabel }) {
+  if (!items?.length) {
+    return <p className="muted">{emptyLabel}</p>;
+  }
+
+  return (
+    <div className="requirementList">
+      {items.map((item) => (
+        <article className="requirementItem" key={item.id || item.name}>
+          <div>
+            <strong>{item.name}</strong>
+            <small>{item.priority || "medium"} priority</small>
+          </div>
+          {item.rationale ? <p>{item.rationale}</p> : null}
+          {item.evidence?.length ? (
+            <ul>
+              {item.evidence.map((entry) => (
+                <li key={entry}>{entry}</li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function EvidenceList({ items }) {
+  if (!items?.length) {
+    return <p className="muted">No evidence items yet.</p>;
+  }
+
+  return (
+    <ul className="cleanList">
+      {items.map((item, index) => (
+        <li key={`${item.requirementId || item.requirementName || "evidence"}-${index}`}>
+          <strong>{item.requirementName || "Evidence"}:</strong> {item.evidence || item}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function App() {
@@ -417,7 +523,7 @@ function App() {
                     <button type="button" onClick={() => setResult(getRunResult(run))}>
                       <span>{getRunTitle(run)}</span>
                       <small>
-                        {run.result?.matchScore ?? "--"}% match
+                        {run.result?.fitScore ?? run.result?.matchScore ?? "--"}% fit
                         {run.createdAt ? ` - ${formatRunDate(run.createdAt)}` : ""}
                       </small>
                     </button>
@@ -440,56 +546,59 @@ function App() {
       </section>
 
       <section className="resultsGrid">
-        <Panel icon={Target} title="Match Score">
+        <Panel icon={Target} title="Fit Score">
           <div className="scoreLayout">
-            <ScoreRing score={result.matchScore || 0} />
+            <ScoreRing score={result.fitScore || result.matchScore || 0} />
             <div>
               <h3>{result.roleTitle || "Role alignment"}</h3>
               <p>
                 {result.companyName
-                  ? `Prepared for ${result.companyName}. The score reflects the AI comparison between the selected CV and job details.`
-                  : "The score reflects the AI comparison between the selected CV and job details."}
+                  ? `Prepared for ${result.companyName}. The score is calculated from weighted requirement coverage.`
+                  : "The score is calculated from weighted requirement coverage."}
               </p>
             </div>
           </div>
         </Panel>
 
-        <Panel icon={CheckCircle2} title="Matched Skills">
-          <PillList items={result.matchedSkills || []} emptyLabel="No matched skills detected yet." />
+        <Panel icon={CheckCircle2} title="Matched Requirements">
+          <RequirementList
+            items={result.matchedRequirements || []}
+            emptyLabel="No matched requirements yet."
+          />
         </Panel>
 
-        <Panel icon={BriefcaseBusiness} title="Missing Skills">
-          <PillList items={result.missingSkills || []} emptyLabel="No obvious gaps found." />
+        <Panel icon={BriefcaseBusiness} title="Missing Requirements">
+          <RequirementList
+            items={result.missingRequirements || []}
+            emptyLabel="No missing requirements found."
+          />
         </Panel>
 
-        <Panel icon={FileText} title="Tailored CV Suggestions">
+        <Panel icon={FileText} title="Evidence">
+          <EvidenceList items={result.evidence || []} />
+        </Panel>
+
+        <Panel icon={Sparkles} title="Recommendations">
           <ul className="cleanList">
-            {(result.tailoredCvSuggestions || []).map((item) => (
+            {(result.recommendations || []).map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </Panel>
 
-        <Panel icon={MessageSquareText} title="Cover Letter">
-          <pre className="letter">{result.coverLetter}</pre>
-        </Panel>
-
-        <Panel icon={Sparkles} title="Interview Questions">
-          <ul className="cleanList">
-            {(result.interviewQuestions || []).map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+        <Panel icon={MessageSquareText} title="Final Report">
+          <pre className="letter">{result.finalReport}</pre>
         </Panel>
 
         <section className="tracePanel">
           <h2>Agent Trace</h2>
           <div className="traceList">
             {(result.agentTrace || []).map((step, index) => (
-              <div className="traceItem" key={`${step.tool}-${step.status}-${index}`}>
+              <div className={`traceItem ${step.status}`} key={`${step.id}-${step.status}-${index}`}>
                 <CheckCircle2 size={16} />
-                <span>{step.tool.replaceAll("_", " ")}</span>
+                <span>{step.name}</span>
                 <small>{step.status}</small>
+                {step.summary ? <p>{step.summary}</p> : null}
               </div>
             ))}
           </div>

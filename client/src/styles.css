@@ -440,6 +440,55 @@ textarea {
   color: #31443d;
 }
 
+.cleanList strong {
+  color: #17211d;
+}
+
+.requirementList {
+  display: grid;
+  gap: 12px;
+}
+
+.requirementItem {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: #f8faf8;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+}
+
+.requirementItem div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.requirementItem strong {
+  color: #17211d;
+}
+
+.requirementItem small {
+  flex: 0 0 auto;
+  color: #667970;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.requirementItem p,
+.requirementItem ul {
+  margin: 0;
+  color: #31443d;
+  font-size: 0.9rem;
+}
+
+.requirementItem ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+
 .letter {
   max-height: 310px;
   overflow: auto;
@@ -473,6 +522,24 @@ textarea {
   border-radius: 8px;
   color: #22483d;
   text-transform: capitalize;
+}
+
+.traceItem.running {
+  border-color: #f4c35d;
+}
+
+.traceItem.failed {
+  color: #8f2d23;
+  background: #fff7f5;
+  border-color: #f1c8c2;
+}
+
+.traceItem p {
+  grid-column: 2 / -1;
+  margin: -4px 0 0;
+  color: #667970;
+  font-size: 0.84rem;
+  text-transform: none;
 }
 
 @keyframes spin {

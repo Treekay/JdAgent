@@ -83,7 +83,8 @@ function asyncRoute(handler) {
       console.error(error);
       response.status(500).json({
         message: error.message || "Request failed.",
-        detail: process.env.NODE_ENV === "production" ? undefined : error.message
+        detail: process.env.NODE_ENV === "production" ? undefined : error.message,
+        agentTrace: error.agentTrace
       });
     }
   };
