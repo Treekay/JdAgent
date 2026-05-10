@@ -3,11 +3,13 @@ import { createRoot } from "react-dom/client";
 import {
   BriefcaseBusiness,
   CheckCircle2,
+  Download,
   FileText,
   History,
   Link,
   Loader2,
   MessageSquareText,
+  Palette,
   Send,
   Sparkles,
   Target,
@@ -91,6 +93,12 @@ const applicationStatuses = [
   { id: "interview", label: "收到面试" },
   { id: "result", label: "结果" }
 ];
+const resumeTemplates = [
+  { id: "compact", label: "ATS Compact" },
+  { id: "modern", label: "Modern" },
+  { id: "technical", label: "Technical" }
+];
+const resumeAccents = ["#0f8b73", "#1f6feb", "#8b3dff", "#a73d55", "#b66a18"];
 
 async function apiJson(path, options) {
   const response = await fetch(`${API_BASE_URL}${path}`, options);
@@ -304,6 +312,42 @@ function EvidenceList({ items }) {
   );
 }
 
+function MarkdownPreview({ content }) {
+  const lines = (content || "").split("\n").filter((line) => line.trim());
+
+  if (!lines.length) {
+    return <p className="muted">Run the agent to generate a resume draft.</p>;
+  }
+
+  return lines.map((line, index) => {
+    const trimmed = line.trim();
+    const key = `${trimmed}-${index}`;
+
+    if (trimmed.startsWith("### ")) {
+      return <h4 key={key}>{trimmed.replace(/^###\s+/, "")}</h4>;
+    }
+
+    if (trimmed.startsWith("## ")) {
+      return <h3 key={key}>{trimmed.replace(/^##\s+/, "")}</h3>;
+    }
+
+    if (trimmed.startsWith("- ")) {
+      return <p className="resumeBullet" key={key}>{trimmed.replace(/^-\s+/, "")}</p>;
+    }
+
+    return <p key={key}>{trimmed}</p>;
+  });
+}
+
+function ResumePreview({ accent, content, template }) {
+  return (
+    <article className={`resumePreview ${template}`} style={{ "--resumeAccent": accent }}>
+      <div className="resumeTopline" />
+      <MarkdownPreview content={content} />
+    </article>
+  );
+}
+
 function App() {
   const [cvFile, setCvFile] = useState(null);
   const [cvs, setCvs] = useState([]);
@@ -317,6 +361,8 @@ function App() {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Demo output loaded");
+  const [resumeTemplate, setResumeTemplate] = useState("compact");
+  const [resumeAccent, setResumeAccent] = useState(resumeAccents[0]);
 
   const canRun = Boolean(selectedCvId && (jobDescription.trim() || jobUrl.trim()) && !isRunning);
 
@@ -453,6 +499,10 @@ function App() {
     } finally {
       setIsRunning(false);
     }
+  }
+
+  function printResume() {
+    window.print();
   }
 
   return (
@@ -649,8 +699,42 @@ function App() {
           </ul>
         </Panel>
 
-        <Panel icon={FileText} title="Tailored Resume">
-          <pre className="letter">{result.tailoredResume}</pre>
+        <Panel icon={Palette} title="Resume Template">
+          <div className="templateToolbar">
+            <div className="templateOptions">
+              {resumeTemplates.map((template) => (
+                <button
+                  className={resumeTemplate === template.id ? "active" : ""}
+                  key={template.id}
+                  type="button"
+                  onClick={() => setResumeTemplate(template.id)}
+                >
+                  {template.label}
+                </button>
+              ))}
+            </div>
+            <div className="accentOptions" aria-label="Resume accent color">
+              {resumeAccents.map((accent) => (
+                <button
+                  className={resumeAccent === accent ? "active" : ""}
+                  key={accent}
+                  style={{ background: accent }}
+                  type="button"
+                  aria-label={`Use accent ${accent}`}
+                  onClick={() => setResumeAccent(accent)}
+                />
+              ))}
+            </div>
+            <button className="secondaryButton printButton" type="button" onClick={printResume}>
+              <Download size={16} />
+              Save PDF
+            </button>
+          </div>
+          <ResumePreview
+            accent={resumeAccent}
+            content={result.tailoredResume}
+            template={resumeTemplate}
+          />
         </Panel>
 
         <Panel icon={MessageSquareText} title="Cover Letter">
