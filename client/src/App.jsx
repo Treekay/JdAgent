@@ -1,204 +1,115 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  deleteCvById,
-  deleteRunById,
-  fetchInitialData,
-  runMatchAgent,
-  updateRunStage,
-  uploadCvFile
+  clearStoredToken,
+  fetchCurrentUser,
+  getStoredToken,
+  logout
 } from "./api.js";
-import { ApplicationForm, Intro, ResultsDashboard } from "./components.jsx";
-import { resumeAccents, sampleResult } from "./data.js";
-import { getRunResult, getRunStatusLabel, normalizeResult } from "./resultUtils.js";
+import { SidebarNavigation } from "./components/application/SidebarNavigation.jsx";
+import { ApplicationDetailPage } from "./pages/ApplicationDetailPage.jsx";
+import { ApplicationWorkspace } from "./pages/ApplicationWorkspace.jsx";
+import { AnalysisModulePage } from "./pages/AnalysisModulePage.jsx";
+import { AuthPage } from "./pages/AuthPage.jsx";
+import { CoverLetterEmailPage } from "./pages/CoverLetterEmailPage.jsx";
+import { ResumeModulePage } from "./pages/ResumeModulePage.jsx";
+
+const pages = {
+  dashboard: ApplicationWorkspace,
+  resume: ResumeModulePage,
+  cover: CoverLetterEmailPage,
+  analysis: AnalysisModulePage
+};
 
 export function App() {
-  const [cvFile, setCvFile] = useState(null);
-  const [cvs, setCvs] = useState([]);
-  const [selectedCvId, setSelectedCvId] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [jobUrl, setJobUrl] = useState("");
-  const [result, setResult] = useState(() => normalizeResult(sampleResult));
-  const [runs, setRuns] = useState([]);
-  const [selectedRunId, setSelectedRunId] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
-  const [isUploadingCv, setIsUploadingCv] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState("Demo output loaded");
-  const [resumeTemplate, setResumeTemplate] = useState("compact");
-  const [resumeAccent, setResumeAccent] = useState(resumeAccents[0]);
-
-  const canRun = Boolean(selectedCvId && (jobDescription.trim() || jobUrl.trim()) && !isRunning);
-  const selectedCv = useMemo(
-    () => cvs.find((cv) => cv._id === selectedCvId),
-    [cvs, selectedCvId]
-  );
-  const selectedRun = useMemo(
-    () => runs.find((run) => run._id === selectedRunId),
-    [runs, selectedRunId]
-  );
-
-  async function loadData() {
-    setIsLoadingData(true);
-    setError("");
-
-    try {
-      const [cvPayload, runPayload] = await fetchInitialData();
-      const nextCvs = cvPayload.cvs || [];
-      const nextRuns = runPayload.runs || [];
-      setCvs(nextCvs);
-      setRuns(nextRuns);
-      setSelectedCvId((currentId) => currentId || nextCvs[0]?._id || "");
-      setSelectedRunId((currentId) => currentId || nextRuns[0]?._id || "");
-      return nextRuns;
-    } catch (loadError) {
-      setError(loadError.message);
-      return [];
-    } finally {
-      setIsLoadingData(false);
-    }
-  }
+  const [activePage, setActivePage] = useState("dashboard");
+  const [activeRunId, setActiveRunId] = useState("");
+  const [moduleRunId, setModuleRunId] = useState("");
+  const [authUser, setAuthUser] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(Boolean(getStoredToken()));
+  const Page = pages[activePage] || ApplicationWorkspace;
 
   useEffect(() => {
-    loadData();
+    async function checkAuth() {
+      if (!getStoredToken()) {
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      try {
+        const payload = await fetchCurrentUser();
+        setAuthUser(payload.user);
+      } catch {
+        clearStoredToken();
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    }
+
+    checkAuth();
   }, []);
 
-  async function uploadCv() {
-    if (!cvFile) return;
-
-    setIsUploadingCv(true);
-    setError("");
-
-    try {
-      const payload = await uploadCvFile(cvFile);
-      setCvs((current) => [payload.cv, ...current]);
-      setSelectedCvId(payload.cv._id);
-      setCvFile(null);
-      setStatus("CV uploaded and selected");
-    } catch (uploadError) {
-      setError(uploadError.message);
-    } finally {
-      setIsUploadingCv(false);
-    }
+  function openApplicationDetail(runId) {
+    setActiveRunId(runId);
+    setActivePage("detail");
   }
 
-  async function deleteSelectedCv(id) {
-    setError("");
-
-    try {
-      await deleteCvById(id);
-      setCvs((current) => {
-        const next = current.filter((cv) => cv._id !== id);
-        if (selectedCvId === id) {
-          setSelectedCvId(next[0]?._id || "");
-        }
-        return next;
-      });
-      setStatus("CV deleted");
-    } catch (deleteError) {
-      setError(deleteError.message);
-    }
+  function openRunModule(page, runId) {
+    setModuleRunId(runId);
+    setActivePage(page);
   }
 
-  async function deleteRun(id) {
-    setError("");
-
+  async function handleLogout() {
     try {
-      await deleteRunById(id);
-      setRuns((current) => current.filter((run) => run._id !== id));
-      if (selectedRunId === id) {
-        setSelectedRunId("");
-      }
-      setStatus("Match record deleted");
-    } catch (deleteError) {
-      setError(deleteError.message);
+      await logout();
+    } catch {
+      // Local logout still clears the browser session if the server call fails.
     }
+
+    clearStoredToken();
+    setAuthUser(null);
+    setActivePage("dashboard");
+    setActiveRunId("");
   }
 
-  async function updateApplicationStatus(id, applicationStatus) {
-    setError("");
-
-    try {
-      const payload = await updateRunStage(id, applicationStatus);
-      setRuns((current) =>
-        current.map((run) => (run._id === id ? { ...run, ...payload.run } : run))
-      );
-      setSelectedRunId(id);
-      setStatus(`Application status updated to ${getRunStatusLabel(payload.run)}`);
-    } catch (statusError) {
-      setError(statusError.message);
-    }
+  if (isCheckingAuth) {
+    return <main className="authLoading">Loading workspace...</main>;
   }
 
-  function selectRun(run) {
-    setSelectedRunId(run._id);
-    setResult(getRunResult(run));
+  if (!authUser) {
+    return <AuthPage onAuthenticated={setAuthUser} />;
   }
 
-  async function runAgent(event) {
-    event.preventDefault();
-    setError("");
-    setStatus("AI is reading the CV and job details");
-    setIsRunning(true);
-
-    try {
-      const payload = await runMatchAgent({
-        cvId: selectedCvId,
-        jobDescription,
-        jobUrl
-      });
-      setResult(normalizeResult(payload));
-      setSelectedRunId(payload.id || "");
-      setStatus("Latest run saved");
-      await loadData();
-    } catch (runError) {
-      setError(runError.message);
-      setStatus("");
-    } finally {
-      setIsRunning(false);
-    }
+  if (activePage === "detail") {
+    return (
+      <div className="appFrame">
+        <SidebarNavigation
+          activePage="analysis"
+          user={authUser}
+          onLogout={handleLogout}
+          onPageChange={setActivePage}
+        />
+        <section className="contentFrame">
+          <ApplicationDetailPage
+            runId={activeRunId}
+            onBack={() => setActivePage("dashboard")}
+            onOpenModule={openRunModule}
+          />
+        </section>
+      </div>
+    );
   }
 
   return (
-    <main className="appShell">
-      <section className="workspace">
-        <Intro />
-        <ApplicationForm
-          canRun={canRun}
-          cvFile={cvFile}
-          cvs={cvs}
-          error={error}
-          isLoadingData={isLoadingData}
-          isRunning={isRunning}
-          isUploadingCv={isUploadingCv}
-          jobDescription={jobDescription}
-          jobUrl={jobUrl}
-          runs={runs}
-          selectedCv={selectedCv}
-          selectedCvId={selectedCvId}
-          status={status}
-          onCvFileChange={setCvFile}
-          onDeleteCv={deleteSelectedCv}
-          onDeleteRun={deleteRun}
-          onJobDescriptionChange={setJobDescription}
-          onJobUrlChange={setJobUrl}
-          onLoadData={loadData}
-          onRunAgent={runAgent}
-          onSelectCv={setSelectedCvId}
-          onSelectRun={selectRun}
-          onUpdateRunStatus={updateApplicationStatus}
-          onUploadCv={uploadCv}
-        />
-      </section>
-
-      <ResultsDashboard
-        result={result}
-        resumeAccent={resumeAccent}
-        resumeTemplate={resumeTemplate}
-        selectedRun={selectedRun}
-        onAccentChange={setResumeAccent}
-        onTemplateChange={setResumeTemplate}
+    <div className="appFrame">
+      <SidebarNavigation
+        activePage={activePage}
+        user={authUser}
+        onLogout={handleLogout}
+        onPageChange={setActivePage}
       />
-    </main>
+      <section className="contentFrame">
+      <Page initialRunId={moduleRunId} onOpenRun={openApplicationDetail} />
+      </section>
+    </div>
   );
 }

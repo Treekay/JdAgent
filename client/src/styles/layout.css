@@ -1,0 +1,201 @@
+.appFrame {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #f5f7f4;
+}
+
+.contentFrame {
+  min-width: 0;
+}
+
+.appShell,
+.pageShell {
+  min-height: 100vh;
+  padding: 28px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 18px 14px;
+  background: #ffffff;
+  border-right: 1px solid #dfe7e2;
+}
+
+.sidebarBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #17211d;
+}
+
+.sidebarBrand div {
+  display: grid;
+  gap: 2px;
+}
+
+.sidebarBrand small {
+  color: #667970;
+}
+
+.sidebarNav {
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: 8px;
+  flex: 1;
+  align-content: start;
+}
+
+.sidebarNav button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: #34554c;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.sidebarNav button.active,
+.sidebarNav button:hover {
+  color: #0d3f33;
+  background: #e8f5ef;
+  border-color: #13a881;
+}
+
+.sidebarLogout {
+  min-height: 40px;
+  padding: 9px 12px;
+  color: #8f2d23;
+  background: #fff7f5;
+  border: 1px solid #f1c8c2;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.sidebarLogout:hover {
+  color: #8f2d23;
+  background: #ffece8;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 0.7fr);
+  gap: 28px;
+  max-width: 1240px;
+  margin: 0 auto 28px;
+  align-items: stretch;
+}
+
+.appNavigation {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 28px;
+  background: rgba(245, 247, 244, 0.92);
+  border-bottom: 1px solid #dfe7e2;
+  backdrop-filter: blur(12px);
+}
+
+.navBrand,
+.navItems,
+.navItems button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.navBrand {
+  gap: 10px;
+  color: #17211d;
+}
+
+.navItems {
+  gap: 8px;
+}
+
+.navItems button {
+  min-height: 36px;
+  gap: 7px;
+  padding: 8px 11px;
+  color: #34554c;
+  background: #ffffff;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.navItems button.active,
+.navItems button:hover {
+  color: #0d3f33;
+  background: #e8f5ef;
+  border-color: #13a881;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.brandMark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #17372e;
+  background: #f4c35d;
+  border-radius: 8px;
+}
+
+.inputPanel,
+.panel,
+.tracePanel {
+  background: #ffffff;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(35, 58, 48, 0.08);
+}
+
+.panel {
+  padding: 22px;
+}
+
+.panel:nth-child(4),
+.panel:nth-child(5),
+.panel:nth-child(6),
+.tracePanel {
+  grid-column: span 1;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+  color: #214c40;
+}
+
+.panelTitle h2,
+.tracePanel h2 {
+  margin: 0;
+  color: #17211d;
+  font-size: 1rem;
+}

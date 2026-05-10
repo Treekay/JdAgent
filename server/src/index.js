@@ -7,9 +7,14 @@ import { fileURLToPath } from "node:url";
 import { extractCvText } from "./extractText.js";
 import { runApplicationAgent } from "./agent.js";
 import {
+  createSession,
+  createUser,
   deleteCv,
   deleteRun,
+  deleteSession,
+  findUserByCredentials,
   getCv,
+  getSessionUser,
   listCvs,
   listRuns,
   saveCv,
@@ -99,6 +104,42 @@ function asyncRoute(handler) {
   };
 }
 
+function validateCredentials({ username = "", password = "" }) {
+  const normalizedUsername = username.trim().toLowerCase();
+
+  if (normalizedUsername.length < 3) {
+    throw new Error("Username must be at least 3 characters.");
+  }
+
+  if (password.length < 6) {
+    throw new Error("Password must be at least 6 characters.");
+  }
+
+  return { username: normalizedUsername, password };
+}
+
+function getBearerToken(request) {
+  const header = request.get("authorization") || "";
+  return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+}
+
+async function requireAuth(request, response, next) {
+  try {
+    const token = getBearerToken(request);
+    const user = token ? await getSessionUser(token) : null;
+
+    if (!user) {
+      response.status(401).json({ message: "Login required." });
+      return;
+    }
+
+    request.auth = { token, user };
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 app.use(
   cors({
     origin(origin, callback) {
@@ -117,10 +158,81 @@ app.get("/api/health", (_request, response) => {
   response.json({ ok: true });
 });
 
+app.post(
+  "/api/auth/register",
+  asyncRoute(async (request, response) => {
+    let credentials;
+
+    try {
+      credentials = validateCredentials(request.body);
+    } catch (error) {
+      response.status(400).json({ message: error.message });
+      return;
+    }
+
+    try {
+      const user = await createUser(credentials);
+      const token = await createSession(user._id);
+      response.status(201).json({ token, user });
+    } catch (error) {
+      if (error.code === 11000) {
+        response.status(409).json({ message: "Username is already taken." });
+        return;
+      }
+
+      throw error;
+    }
+  })
+);
+
+app.post(
+  "/api/auth/login",
+  asyncRoute(async (request, response) => {
+    let credentials;
+
+    try {
+      credentials = validateCredentials(request.body);
+    } catch (error) {
+      response.status(400).json({ message: error.message });
+      return;
+    }
+
+    const user = await findUserByCredentials(credentials);
+
+    if (!user) {
+      response.status(401).json({ message: "Invalid username or password." });
+      return;
+    }
+
+    const token = await createSession(user._id);
+    response.json({ token, user });
+  })
+);
+
+app.get(
+  "/api/auth/me",
+  requireAuth,
+  asyncRoute(async (request, response) => {
+    response.json({ user: request.auth.user });
+  })
+);
+
+app.post(
+  "/api/auth/logout",
+  requireAuth,
+  asyncRoute(async (request, response) => {
+    await deleteSession(request.auth.token);
+    response.json({ ok: true });
+  })
+);
+
+app.use("/api/cvs", requireAuth);
+app.use("/api/applications", requireAuth);
+
 app.get(
   "/api/cvs",
   asyncRoute(async (_request, response) => {
-    response.json({ cvs: await listCvs() });
+    response.json({ cvs: await listCvs(_request.auth.user._id) });
   })
 );
 
@@ -134,7 +246,7 @@ app.post(
     }
 
     const text = await extractCvText(request.file);
-    const cvId = await saveCv({
+    const cvId = await saveCv(request.auth.user._id, {
       fileName: request.file.originalname,
       mimeType: request.file.mimetype,
       size: request.file.size,
@@ -156,7 +268,7 @@ app.post(
 app.delete(
   "/api/cvs/:id",
   asyncRoute(async (request, response) => {
-    const deleted = await deleteCv(request.params.id);
+    const deleted = await deleteCv(request.auth.user._id, request.params.id);
     response.json({ deleted });
   })
 );
@@ -164,14 +276,14 @@ app.delete(
 app.get(
   "/api/applications/runs",
   asyncRoute(async (_request, response) => {
-    response.json({ runs: await listRuns() });
+    response.json({ runs: await listRuns(_request.auth.user._id) });
   })
 );
 
 app.patch(
   "/api/applications/runs/:id/status",
   asyncRoute(async (request, response) => {
-    const run = await updateRunStatus(request.params.id, request.body.status);
+    const run = await updateRunStatus(request.auth.user._id, request.params.id, request.body.status);
 
     if (!run) {
       response.status(404).json({ message: "Match record was not found." });
@@ -185,7 +297,7 @@ app.patch(
 app.delete(
   "/api/applications/runs/:id",
   asyncRoute(async (request, response) => {
-    const deleted = await deleteRun(request.params.id);
+    const deleted = await deleteRun(request.auth.user._id, request.params.id);
     response.json({ deleted });
   })
 );
@@ -200,7 +312,7 @@ app.post(
       return;
     }
 
-    const cv = await getCv(cvId);
+    const cv = await getCv(request.auth.user._id, cvId);
     if (!cv) {
       response.status(404).json({ message: "Selected CV was not found." });
       return;
@@ -217,7 +329,7 @@ app.post(
       jobDescription: loadedJobDescription,
       jobUrl
     });
-    const runId = await saveRun({
+    const runId = await saveRun(request.auth.user._id, {
       cvId: cv._id,
       cvFileName: cv.fileName,
       companyName: result.companyName || "",

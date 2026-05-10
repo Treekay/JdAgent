@@ -1,0 +1,106 @@
+@media (max-width: 980px) {
+  .authShellInner {
+    grid-template-columns: 1fr;
+  }
+
+  .authPoster {
+    min-height: 420px;
+  }
+
+  .appFrame {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .sidebarNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace,
+  .resultsGrid,
+  .analysisReport,
+  .detailStageGrid,
+  .detailEntryCards,
+  .pageHeader,
+  .templateCatalog,
+  .analysisLayout,
+  .moduleGrid,
+  .dashboardStats,
+  .dashboardActions,
+  .coachGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .traceList {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisSidebar {
+    position: static;
+  }
+
+  .detailHero,
+  .detailStatus,
+  .detailTabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .authPoster,
+  .authPanel,
+  .authShell {
+    padding: 18px;
+  }
+
+  .authPoster h1 {
+    font-size: 2.8rem;
+  }
+
+  .appShell {
+    padding: 14px;
+  }
+
+  .appNavigation {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 12px 14px;
+  }
+
+  .navItems {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .navItems button {
+    justify-content: center;
+  }
+
+  .sidebar {
+    padding: 14px;
+  }
+
+  .sidebarNav {
+    grid-template-columns: 1fr;
+  }
+
+  .inputPanel,
+  .panel,
+  .tracePanel {
+    padding: 18px;
+  }
+
+  .scoreLayout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboardStatusBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

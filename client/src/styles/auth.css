@@ -1,0 +1,117 @@
+.authShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: #f5f7f4;
+}
+
+.authShellInner {
+  width: min(100%, 1120px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.75fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.authPoster {
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 44px;
+  color: #f8fbf8;
+  background:
+    linear-gradient(135deg, rgba(19, 57, 49, 0.94), rgba(24, 108, 86, 0.86)),
+    radial-gradient(circle at 80% 18%, rgba(244, 195, 93, 0.32), transparent 31%),
+    #133931;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.authPoster h1 {
+  max-width: 760px;
+  margin: 0 0 18px;
+  font-size: clamp(2.8rem, 7vw, 6.2rem);
+  line-height: 0.92;
+}
+
+.authPoster p {
+  max-width: 650px;
+  margin: 0;
+  color: rgba(248, 251, 248, 0.78);
+  font-size: 1.05rem;
+}
+
+.authPanel {
+  display: grid;
+  place-items: center;
+}
+
+.authForm {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+  background: #ffffff;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(35, 58, 48, 0.08);
+}
+
+.authForm > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.authForm span {
+  color: #13a881;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.authForm h2 {
+  margin: 0;
+  color: #17211d;
+  font-size: 2rem;
+}
+
+.authForm label {
+  display: grid;
+  gap: 8px;
+  color: #214c40;
+  font-weight: 800;
+}
+
+.authForm input {
+  min-height: 44px;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #17211d;
+  outline: none;
+}
+
+.authForm input:focus {
+  border-color: #13a881;
+  box-shadow: 0 0 0 4px rgba(19, 168, 129, 0.12);
+}
+
+.authSwitch {
+  border: 0;
+  color: #214c40;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.authLoading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: #214c40;
+  background: #f5f7f4;
+  font-weight: 800;
+}

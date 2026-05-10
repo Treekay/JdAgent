@@ -1,7 +1,30 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const TOKEN_STORAGE_KEY = "apply_agent_token";
+
+export function getStoredToken() {
+  return localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+}
+
+export function storeToken(token) {
+  localStorage.setItem(TOKEN_STORAGE_KEY, token);
+}
+
+export function clearStoredToken() {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
 
 export async function apiJson(path, options) {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  const token = getStoredToken();
+  const headers = new Headers(options?.headers || {});
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers
+  });
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -9,6 +32,34 @@ export async function apiJson(path, options) {
   }
 
   return payload;
+}
+
+export async function register({ username, password }) {
+  return apiJson("/api/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username, password })
+  });
+}
+
+export async function login({ username, password }) {
+  return apiJson("/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username, password })
+  });
+}
+
+export function fetchCurrentUser() {
+  return apiJson("/api/auth/me");
+}
+
+export function logout() {
+  return apiJson("/api/auth/logout", { method: "POST" });
 }
 
 export function fetchInitialData() {

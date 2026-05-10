@@ -68,7 +68,7 @@ export const defaultAgentTrace = [
 ];
 
 export const applicationStatuses = [
-  { id: "saved", label: "Saved" },
+  { id: "saved", label: "Preparing" },
   { id: "applied", label: "Applied" },
   { id: "interview", label: "Interview" },
   { id: "result", label: "Result" }
