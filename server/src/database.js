@@ -26,6 +26,8 @@ function runDisplayTitle(run) {
   return companyName || roleTitle || "Saved match";
 }
 
+const APPLICATION_STATUSES = new Set(["saved", "applied", "interview", "result"]);
+
 export async function connectDatabase() {
   if (!process.env.MONGO_URI) {
     return null;
@@ -95,6 +97,7 @@ export async function saveRun(run) {
   requireDatabase(database);
 
   const result = await database.collection("runs").insertOne({
+    applicationStatus: "saved",
     ...run,
     createdAt: new Date()
   });
@@ -126,8 +129,52 @@ export async function listRuns(limit = 20) {
     ...run,
     _id: run._id.toString(),
     cvId: run.cvId?.toString?.() || run.cvId || null,
+    applicationStatus: APPLICATION_STATUSES.has(run.applicationStatus)
+      ? run.applicationStatus
+      : "saved",
     displayTitle: runDisplayTitle(run)
   }));
+}
+
+export async function updateRunStatus(id, status) {
+  const database = await connectDatabase();
+  requireDatabase(database);
+
+  if (!APPLICATION_STATUSES.has(status)) {
+    throw new Error("Invalid application status.");
+  }
+
+  const _id = toObjectId(id);
+  await database.collection("runs").updateOne(
+    { _id },
+    {
+      $set: {
+        applicationStatus: status,
+        updatedAt: new Date()
+      }
+    }
+  );
+
+  const run = await database.collection("runs").findOne(
+    { _id },
+    {
+      projection: {
+        cvText: 0
+      }
+    }
+  );
+
+  if (!run) {
+    return null;
+  }
+
+  return {
+    ...run,
+    _id: run._id.toString(),
+    cvId: run.cvId?.toString?.() || run.cvId || null,
+    applicationStatus: run.applicationStatus,
+    displayTitle: runDisplayTitle(run)
+  };
 }
 
 export async function deleteRun(id) {

@@ -321,6 +321,41 @@ textarea {
   font-weight: 750;
 }
 
+.trackerItem {
+  padding: 0;
+}
+
+.trackerItem > button:first-child {
+  min-width: 0;
+}
+
+.statusSteps {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.statusStep {
+  min-height: 34px;
+  padding: 6px 8px;
+  color: #4f6259;
+  background: #f8faf8;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.statusStep:hover,
+.statusStep.active {
+  color: #0d3f33;
+  background: #e8f5ef;
+  border-color: #13a881;
+}
+
 .iconButton {
   display: grid;
   width: 42px;

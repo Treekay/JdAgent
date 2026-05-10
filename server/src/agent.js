@@ -244,13 +244,29 @@ function splitRequirementMatches(requirements, matches) {
   return { matchedRequirements, missingRequirements, evidence };
 }
 
-function legacyFields({ matchedRequirements, missingRequirements, recommendations, finalReport }) {
+function normalizeApplicationAssets(value) {
+  return {
+    finalReport: text(value?.finalReport),
+    tailoredResume: text(value?.tailoredResume),
+    coverLetter: text(value?.coverLetter),
+    interviewPrep: stringArray(value?.interviewPrep)
+  };
+}
+
+function legacyFields({
+  matchedRequirements,
+  missingRequirements,
+  recommendations,
+  finalReport,
+  coverLetter,
+  interviewPrep
+}) {
   return {
     matchedSkills: matchedRequirements.map((item) => item.name),
     missingSkills: missingRequirements.map((item) => item.name),
     tailoredCvSuggestions: recommendations,
-    coverLetter: finalReport,
-    interviewQuestions: []
+    coverLetter: coverLetter || finalReport,
+    interviewQuestions: interviewPrep
   };
 }
 
@@ -399,13 +415,16 @@ export async function runApplicationAgent({ cvText, jobDescription, jobUrl = "" 
     };
   });
 
-  const finalReport = await runStep(agentTrace, "generate_final_report", async () => {
+  const applicationAssets = await runStep(agentTrace, "generate_final_report", async () => {
     const parsed = await callJson(
       client,
       [
         "Step 8: Generate Final Report.",
-        "Return JSON with finalReport as a concise, structured markdown report.",
-        "Do not include a cover letter unless it is framed as one section of the report.",
+        "Return JSON with finalReport, tailoredResume, coverLetter, and interviewPrep.",
+        "finalReport must be a concise structured markdown report.",
+        "tailoredResume must be a role-targeted resume draft in markdown using only truthful CV evidence.",
+        "coverLetter must be a polished cover letter tailored to the company and role.",
+        "interviewPrep must be an array of concise interview prep tips/questions for this job.",
         "",
         JSON.stringify({
           parsedJob,
@@ -418,11 +437,11 @@ export async function runApplicationAgent({ cvText, jobDescription, jobUrl = "" 
         })
       ].join("\n")
     );
-    const output = text(parsed.finalReport);
+    const output = normalizeApplicationAssets(parsed);
 
     return {
       output,
-      summary: "Final report generated"
+      summary: "Final report, tailored resume, cover letter, and interview prep generated"
     };
   });
 
@@ -437,13 +456,18 @@ export async function runApplicationAgent({ cvText, jobDescription, jobUrl = "" 
       missingRequirements: scoring.missingRequirements,
       evidence: scoring.evidence,
       recommendations,
-      finalReport,
+      finalReport: applicationAssets.finalReport,
+      tailoredResume: applicationAssets.tailoredResume,
+      coverLetter: applicationAssets.coverLetter,
+      interviewPrep: applicationAssets.interviewPrep,
       agentTrace,
       ...legacyFields({
         matchedRequirements: scoring.matchedRequirements,
         missingRequirements: scoring.missingRequirements,
         recommendations,
-        finalReport
+        finalReport: applicationAssets.finalReport,
+        coverLetter: applicationAssets.coverLetter,
+        interviewPrep: applicationAssets.interviewPrep
       })
     };
   } catch (error) {

@@ -61,6 +61,14 @@ const sampleResult = {
     "Add honest adjacent experience for testing and Docker or include a short learning/project note if you are building these skills.",
     "Rewrite two recent role bullets to include measurable outcomes, scope, and the tools used."
   ],
+  tailoredResume:
+    "## Targeted Resume Draft\n\n### Summary\nReact and Node developer with experience building user-facing AI workflow tools.\n\n### Selected Experience\n- Built React interfaces for document upload, job analysis, and agent workflow results.\n- Implemented Node and Express APIs for CV parsing and structured AI outputs.",
+  coverLetter:
+    "Dear Hiring Manager,\n\nI am excited to apply for this role. My experience building React and Node applications aligns well with the responsibilities described, especially user-facing workflow tools and AI-assisted document generation.\n\nSincerely,",
+  interviewPrep: [
+    "Prepare a short story about a React project that improved a user workflow.",
+    "Be ready to explain how you validate AI-generated output before showing it to users."
+  ],
   finalReport:
     "## Demo Fit Report\n\nThe candidate shows strong alignment with the React and Node portions of the role. The main improvement area is adding concrete Docker or deployment evidence before applying.",
   agentTrace: []
@@ -77,6 +85,12 @@ const defaultAgentTrace = [
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+const applicationStatuses = [
+  { id: "saved", label: "已保存" },
+  { id: "applied", label: "已投递" },
+  { id: "interview", label: "收到面试" },
+  { id: "result", label: "结果" }
+];
 
 async function apiJson(path, options) {
   const response = await fetch(`${API_BASE_URL}${path}`, options);
@@ -167,6 +181,16 @@ function getRunTitle(run) {
   return companyName || roleTitle || "Saved match";
 }
 
+function getRunStatus(run) {
+  return applicationStatuses.some((status) => status.id === run.applicationStatus)
+    ? run.applicationStatus
+    : "saved";
+}
+
+function getRunStatusLabel(run) {
+  return applicationStatuses.find((status) => status.id === getRunStatus(run))?.label || "已保存";
+}
+
 function normalizeTrace(trace) {
   if (!Array.isArray(trace)) {
     return defaultAgentTrace;
@@ -229,6 +253,9 @@ function normalizeResult(nextResult) {
     missingRequirements,
     evidence: nextResult?.evidence || [],
     recommendations: nextResult?.recommendations || nextResult?.tailoredCvSuggestions || [],
+    tailoredResume: nextResult?.tailoredResume || "",
+    coverLetter: nextResult?.coverLetter || "",
+    interviewPrep: nextResult?.interviewPrep || nextResult?.interviewQuestions || [],
     finalReport: nextResult?.finalReport || nextResult?.coverLetter || "",
     agentTrace: normalizeTrace(nextResult?.agentTrace)
   };
@@ -377,6 +404,27 @@ function App() {
     }
   }
 
+  async function updateApplicationStatus(id, applicationStatus) {
+    setError("");
+
+    try {
+      const payload = await apiJson(`/api/applications/runs/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status: applicationStatus })
+      });
+
+      setRuns((current) =>
+        current.map((run) => (run._id === id ? { ...run, ...payload.run } : run))
+      );
+      setStatus(`Application status updated to ${getRunStatusLabel(payload.run)}`);
+    } catch (statusError) {
+      setError(statusError.message);
+    }
+  }
+
   async function runAgent(event) {
     event.preventDefault();
     setError("");
@@ -513,18 +561,19 @@ function App() {
             <div className="historyHeader">
               <div>
                 <History size={18} />
-                <span>Previous matches</span>
+                <span>Application Tracker</span>
               </div>
             </div>
             {runs.length ? (
               <div className="recordList">
                 {runs.map((run) => (
-                  <div className="recordItem" key={run._id}>
+                  <div className="recordItem trackerItem" key={run._id}>
                     <button type="button" onClick={() => setResult(getRunResult(run))}>
                       <span>{getRunTitle(run)}</span>
                       <small>
                         {run.result?.fitScore ?? run.result?.matchScore ?? "--"}% fit
-                        {run.createdAt ? ` - ${formatRunDate(run.createdAt)}` : ""}
+                        {run.createdAt ? ` - ${formatRunDate(run.createdAt)}` : ""} -{" "}
+                        {getRunStatusLabel(run)}
                       </small>
                     </button>
                     <button
@@ -535,6 +584,20 @@ function App() {
                     >
                       <Trash2 size={16} />
                     </button>
+                    <div className="statusSteps" aria-label={`Status for ${getRunTitle(run)}`}>
+                      {applicationStatuses.map((applicationStatus) => (
+                        <button
+                          className={`statusStep ${
+                            getRunStatus(run) === applicationStatus.id ? "active" : ""
+                          }`}
+                          type="button"
+                          key={applicationStatus.id}
+                          onClick={() => updateApplicationStatus(run._id, applicationStatus.id)}
+                        >
+                          {applicationStatus.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -581,6 +644,22 @@ function App() {
         <Panel icon={Sparkles} title="Recommendations">
           <ul className="cleanList">
             {(result.recommendations || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </Panel>
+
+        <Panel icon={FileText} title="Tailored Resume">
+          <pre className="letter">{result.tailoredResume}</pre>
+        </Panel>
+
+        <Panel icon={MessageSquareText} title="Cover Letter">
+          <pre className="letter">{result.coverLetter}</pre>
+        </Panel>
+
+        <Panel icon={BriefcaseBusiness} title="Interview Prep">
+          <ul className="cleanList">
+            {(result.interviewPrep || []).map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>

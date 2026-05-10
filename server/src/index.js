@@ -6,7 +6,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractCvText } from "./extractText.js";
 import { runApplicationAgent } from "./agent.js";
-import { deleteCv, deleteRun, getCv, listCvs, listRuns, saveCv, saveRun } from "./database.js";
+import {
+  deleteCv,
+  deleteRun,
+  getCv,
+  listCvs,
+  listRuns,
+  saveCv,
+  saveRun,
+  updateRunStatus
+} from "./database.js";
 
 dotenv.config();
 
@@ -156,6 +165,20 @@ app.get(
   "/api/applications/runs",
   asyncRoute(async (_request, response) => {
     response.json({ runs: await listRuns() });
+  })
+);
+
+app.patch(
+  "/api/applications/runs/:id/status",
+  asyncRoute(async (request, response) => {
+    const run = await updateRunStatus(request.params.id, request.body.status);
+
+    if (!run) {
+      response.status(404).json({ message: "Match record was not found." });
+      return;
+    }
+
+    response.json({ run });
   })
 );
 
