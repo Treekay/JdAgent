@@ -450,6 +450,43 @@ textarea {
   font-size: 0.92rem;
 }
 
+.stageCoach {
+  display: grid;
+  gap: 12px;
+}
+
+.stageCoach > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stageCoach strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #17211d;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stageCoach span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  color: #0d3f33;
+  background: #e8f5ef;
+  border: 1px solid #cce4da;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.stageCoach p {
+  margin: 0;
+  color: #31443d;
+  font-size: 0.92rem;
+}
+
 .pillList {
   display: flex;
   flex-wrap: wrap;
