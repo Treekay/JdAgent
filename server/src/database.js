@@ -28,9 +28,79 @@ function runDisplayTitle(run) {
 }
 
 const APPLICATION_STATUSES = new Set(["saved", "applied", "interview", "result"]);
+const STAGE_DATA_FIELDS = new Set([
+  "appliedNote",
+  "interviewNotes",
+  "interviewFeedback",
+  "interviewRounds",
+  "resultStatus",
+  "resultReason",
+  "improvementAreas",
+  "nextAction",
+  "resultReflection"
+]);
 const PASSWORD_ITERATIONS = 120000;
 const PASSWORD_KEY_LENGTH = 32;
 const PASSWORD_DIGEST = "sha256";
+
+function serializeRun(run) {
+  return {
+    ...run,
+    _id: run._id.toString(),
+    cvId: run.cvId?.toString?.() || run.cvId || null,
+    applicationStatus: APPLICATION_STATUSES.has(run.applicationStatus)
+      ? run.applicationStatus
+      : "saved",
+    stageData: run.stageData || {},
+    displayTitle: runDisplayTitle(run)
+  };
+}
+
+function statusTimestampField(status) {
+  if (status === "applied") return "appliedAt";
+  if (status === "interview") return "interviewAt";
+  if (status === "result") return "resultAt";
+  return null;
+}
+
+function sanitizeString(value, maxLength = 4000) {
+  return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
+}
+
+function sanitizeInterviewRounds(rounds) {
+  if (!Array.isArray(rounds)) {
+    return [];
+  }
+
+  return rounds.slice(0, 8).map((round, index) => ({
+    id: sanitizeString(round?.id, 80) || `round-${index + 1}`,
+    roundName: sanitizeString(round?.roundName, 120) || `Round ${index + 1}`,
+    date: sanitizeString(round?.date, 40),
+    interviewer: sanitizeString(round?.interviewer, 160),
+    questions: sanitizeString(round?.questions),
+    feedback: sanitizeString(round?.feedback)
+  }));
+}
+
+function sanitizeImprovementAreas(areas) {
+  if (!Array.isArray(areas)) {
+    return [];
+  }
+
+  return areas.map((area) => sanitizeString(area, 80)).filter(Boolean).slice(0, 8);
+}
+
+function sanitizeStageValue(key, value) {
+  if (key === "interviewRounds") {
+    return sanitizeInterviewRounds(value);
+  }
+
+  if (key === "improvementAreas") {
+    return sanitizeImprovementAreas(value);
+  }
+
+  return typeof value === "string" ? sanitizeString(value) : value;
+}
 
 export async function connectDatabase() {
   if (!process.env.MONGO_URI) {
@@ -209,6 +279,8 @@ export async function saveRun(userId, run) {
 
   const result = await database.collection("runs").insertOne({
     applicationStatus: "saved",
+    statusHistory: [{ status: "saved", changedAt: new Date() }],
+    stageData: {},
     ...run,
     userId: toUserId(userId),
     createdAt: new Date()
@@ -237,15 +309,7 @@ export async function listRuns(userId, limit = 20) {
     .limit(limit)
     .toArray();
 
-  return runs.map((run) => ({
-    ...run,
-    _id: run._id.toString(),
-    cvId: run.cvId?.toString?.() || run.cvId || null,
-    applicationStatus: APPLICATION_STATUSES.has(run.applicationStatus)
-      ? run.applicationStatus
-      : "saved",
-    displayTitle: runDisplayTitle(run)
-  }));
+  return runs.map(serializeRun);
 }
 
 export async function updateRunStatus(userId, id, status) {
@@ -257,13 +321,85 @@ export async function updateRunStatus(userId, id, status) {
   }
 
   const _id = toObjectId(id);
+  const userObjectId = toUserId(userId);
+  const existingRun = await database.collection("runs").findOne(
+    { _id, userId: userObjectId },
+    {
+      projection: {
+        appliedAt: 1,
+        interviewAt: 1,
+        resultAt: 1
+      }
+    }
+  );
+
+  if (!existingRun) {
+    return null;
+  }
+
+  const now = new Date();
+  const timestampField = statusTimestampField(status);
+  const setFields = {
+    applicationStatus: status,
+    updatedAt: now
+  };
+
+  if (timestampField && !existingRun[timestampField]) {
+    setFields[timestampField] = now;
+  }
+
+  await database.collection("runs").updateOne(
+    { _id, userId: userObjectId },
+    {
+      $set: setFields,
+      $push: {
+        statusHistory: { status, changedAt: now }
+      }
+    }
+  );
+
+  const run = await database.collection("runs").findOne(
+    { _id, userId: userObjectId },
+    {
+      projection: {
+        cvText: 0
+      }
+    }
+  );
+
+  if (!run) {
+    return null;
+  }
+
+  return serializeRun(run);
+}
+
+export async function updateRunStageData(userId, id, updates = {}) {
+  const database = await connectDatabase();
+  requireDatabase(database);
+
+  const _id = toObjectId(id);
+  const now = new Date();
+  const setFields = {
+    updatedAt: now
+  };
+
+  Object.entries(updates).forEach(([key, value]) => {
+    if (!STAGE_DATA_FIELDS.has(key)) {
+      return;
+    }
+
+    setFields[`stageData.${key}`] = sanitizeStageValue(key, value);
+  });
+
+  if (Object.keys(setFields).length === 1) {
+    throw new Error("No supported stage data fields were provided.");
+  }
+
   await database.collection("runs").updateOne(
     { _id, userId: toUserId(userId) },
     {
-      $set: {
-        applicationStatus: status,
-        updatedAt: new Date()
-      }
+      $set: setFields
     }
   );
 
@@ -280,13 +416,7 @@ export async function updateRunStatus(userId, id, status) {
     return null;
   }
 
-  return {
-    ...run,
-    _id: run._id.toString(),
-    cvId: run.cvId?.toString?.() || run.cvId || null,
-    applicationStatus: run.applicationStatus,
-    displayTitle: runDisplayTitle(run)
-  };
+  return serializeRun(run);
 }
 
 export async function deleteRun(userId, id) {

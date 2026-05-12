@@ -19,6 +19,7 @@ import {
   listRuns,
   saveCv,
   saveRun,
+  updateRunStageData,
   updateRunStatus
 } from "./database.js";
 
@@ -284,6 +285,24 @@ app.patch(
   "/api/applications/runs/:id/status",
   asyncRoute(async (request, response) => {
     const run = await updateRunStatus(request.auth.user._id, request.params.id, request.body.status);
+
+    if (!run) {
+      response.status(404).json({ message: "Match record was not found." });
+      return;
+    }
+
+    response.json({ run });
+  })
+);
+
+app.patch(
+  "/api/applications/runs/:id/stage-data",
+  asyncRoute(async (request, response) => {
+    const run = await updateRunStageData(
+      request.auth.user._id,
+      request.params.id,
+      request.body || {}
+    );
 
     if (!run) {
       response.status(404).json({ message: "Match record was not found." });

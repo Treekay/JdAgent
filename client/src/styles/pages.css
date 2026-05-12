@@ -432,9 +432,68 @@
   color: #31443d;
 }
 
+.detailAction span {
+  margin-left: auto;
+  color: #0d7b61;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
 .detailSinglePanel h2 {
   margin: 0 0 14px;
   font-size: 1rem;
+}
+
+.stageFormGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.stageFormHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stageFormHeader h2,
+.stageFormHeader strong {
+  margin: 0;
+}
+
+.stageFormHeader button,
+.interviewRound button {
+  min-height: 34px;
+  padding: 7px 10px;
+  color: #214c40;
+  background: #ffffff;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.stageFormHeader button:hover,
+.interviewRound button:hover {
+  color: #0d3f33;
+  background: #e8f5ef;
+  border-color: #13a881;
+}
+
+.stageInlineFields {
+  display: grid;
+  grid-template-columns: 1fr 160px 1fr;
+  gap: 10px;
+}
+
+.interviewRound {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #f8faf8;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
 }
 
 .detailCoach {
@@ -516,7 +575,8 @@
   box-shadow: 0 18px 50px rgba(19, 168, 129, 0.12);
 }
 
-.detailTextarea {
+.detailTextarea,
+.detailInput {
   min-height: 180px;
   width: 100%;
   resize: vertical;
@@ -527,9 +587,76 @@
   outline: none;
 }
 
-.detailTextarea:focus {
+.detailInput {
+  min-height: 42px;
+  resize: none;
+}
+
+.compactTextarea {
+  min-height: 104px;
+}
+
+.detailSelect {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #17211d;
+  background: #ffffff;
+  outline: none;
+}
+
+.detailTextarea:focus,
+.detailInput:focus,
+.detailSelect:focus {
   border-color: #13a881;
   box-shadow: 0 0 0 4px rgba(19, 168, 129, 0.12);
+}
+
+.stageCheckboxGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stageCheckboxGrid label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 10px;
+  color: #214c40;
+  background: #f8faf8;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.stageCheckboxGrid input {
+  accent-color: #0d7b61;
+}
+
+.detailSaveButton {
+  min-height: 38px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  color: #ffffff;
+  background: #0d7b61;
+  border: 1px solid #0d7b61;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.detailSaveButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.detailSaveButton:hover:not(:disabled) {
+  background: #0a5f4b;
+  border-color: #0a5f4b;
 }
 
 .compactReport {

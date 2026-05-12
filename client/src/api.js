@@ -94,6 +94,16 @@ export function updateRunStage(id, status) {
   });
 }
 
+export function updateRunStageData(id, stageData) {
+  return apiJson(`/api/applications/runs/${id}/stage-data`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(stageData)
+  });
+}
+
 export function runMatchAgent({ cvId, jobDescription, jobUrl }) {
   return apiJson("/api/applications/run", {
     method: "POST",

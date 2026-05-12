@@ -25,6 +25,7 @@
   .analysisReport,
   .detailStageGrid,
   .detailEntryCards,
+  .stageInlineFields,
   .pageHeader,
   .templateCatalog,
   .analysisLayout,
@@ -45,7 +46,8 @@
 
   .detailHero,
   .detailStatus,
-  .detailTabs {
+  .detailTabs,
+  .stageCheckboxGrid {
     grid-template-columns: 1fr;
   }
 }
