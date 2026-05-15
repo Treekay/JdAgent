@@ -110,6 +110,16 @@ export function generateRunCoach(id) {
   });
 }
 
+export function rerunApplication(id, { cvId }) {
+  return apiJson(`/api/applications/runs/${id}/rerun`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ cvId })
+  });
+}
+
 export function runMatchAgent({ cvId, jobDescription, jobUrl }) {
   return apiJson("/api/applications/run", {
     method: "POST",

@@ -21,6 +21,7 @@ import {
   saveCv,
   saveRun,
   saveRunCoachInsights,
+  updateRunAnalysis,
   updateRunStageData,
   updateRunStatus
 } from "./database.js";
@@ -333,6 +334,48 @@ app.post(
     );
 
     response.json({ run: updatedRun, coachInsights });
+  })
+);
+
+app.post(
+  "/api/applications/runs/:id/rerun",
+  asyncRoute(async (request, response) => {
+    const run = await getRun(request.auth.user._id, request.params.id);
+
+    if (!run) {
+      response.status(404).json({ message: "Match record was not found." });
+      return;
+    }
+
+    const cvId = request.body?.cvId || run.cvId;
+    if (!cvId) {
+      response.status(400).json({ message: "Select a CV before re-running analysis." });
+      return;
+    }
+
+    const cv = await getCv(request.auth.user._id, cvId);
+    if (!cv) {
+      response.status(404).json({ message: "Selected CV was not found." });
+      return;
+    }
+
+    const jobDescription = run.jobDescription || "";
+    if (!jobDescription) {
+      response.status(400).json({ message: "This record does not have a saved JD to analyze." });
+      return;
+    }
+
+    const result = await runApplicationAgent({
+      cvText: cv.text,
+      jobDescription,
+      jobUrl: run.jobUrl || ""
+    });
+    const updatedRun = await updateRunAnalysis(request.auth.user._id, request.params.id, {
+      cv,
+      result
+    });
+
+    response.json({ run: updatedRun });
   })
 );
 

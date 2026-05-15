@@ -439,6 +439,49 @@
   font-weight: 850;
 }
 
+.rerunPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.34fr) auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.rerunPanel h2,
+.rerunPanel p {
+  margin: 0;
+}
+
+.rerunPanel h2 {
+  font-size: 1rem;
+}
+
+.rerunPanel p {
+  color: #667970;
+  font-size: 0.9rem;
+}
+
+.rerunPanel label {
+  display: grid;
+  gap: 7px;
+  color: #214c40;
+  font-weight: 800;
+}
+
+.rerunPanel select {
+  min-height: 42px;
+  width: 100%;
+  min-width: 0;
+  color: #17211d;
+  background: #ffffff;
+  border: 1px solid #cfdbd5;
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.rerunPanel .agentRunningProgress {
+  grid-column: 1 / -1;
+}
+
 .detailSinglePanel h2 {
   margin: 0 0 14px;
   font-size: 1rem;

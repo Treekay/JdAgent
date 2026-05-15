@@ -474,6 +474,46 @@ export async function saveRunCoachInsights(userId, id, insights) {
   return serializeRun(run);
 }
 
+export async function updateRunAnalysis(userId, id, { cv, result }) {
+  const database = await connectDatabase();
+  requireDatabase(database);
+
+  const _id = toObjectId(id);
+  const userObjectId = toUserId(userId);
+  await database.collection("runs").updateOne(
+    { _id, userId: userObjectId },
+    {
+      $set: {
+        cvId: cv._id,
+        cvFileName: cv.fileName,
+        companyName: result.companyName || "",
+        roleTitle: result.roleTitle || "",
+        result,
+        reanalyzedAt: new Date(),
+        updatedAt: new Date()
+      },
+      $unset: {
+        coachInsights: ""
+      }
+    }
+  );
+
+  const run = await database.collection("runs").findOne(
+    { _id, userId: userObjectId },
+    {
+      projection: {
+        cvText: 0
+      }
+    }
+  );
+
+  if (!run) {
+    return null;
+  }
+
+  return serializeRun(run);
+}
+
 export async function deleteRun(userId, id) {
   const database = await connectDatabase();
   requireDatabase(database);

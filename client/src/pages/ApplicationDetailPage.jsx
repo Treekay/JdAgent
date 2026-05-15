@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BriefcaseBusiness, ExternalLink } from "lucide-react";
-import { fetchInitialData, generateRunCoach, updateRunStage, updateRunStageData } from "../api.js";
+import {
+  fetchInitialData,
+  generateRunCoach,
+  rerunApplication,
+  updateRunStage,
+  updateRunStageData
+} from "../api.js";
 import { applicationStatuses, resumeAccents } from "../data.js";
 import {
   formatRunDate,
@@ -16,6 +22,7 @@ import {
   createStageDraft,
   StageContent
 } from "../components/application/ApplicationStageDetails.jsx";
+import { AgentRunningProgress } from "../components/application/NewApplicationView.jsx";
 
 function currentAction(run) {
   const status = getRunStatus(run);
@@ -27,21 +34,26 @@ function currentAction(run) {
 }
 
 export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
+  const [cvs, setCvs] = useState([]);
   const [runs, setRuns] = useState([]);
   const [selectedRunId, setSelectedRunId] = useState(runId || "");
+  const [rerunCvId, setRerunCvId] = useState("");
   const [activeTab, setActiveTab] = useState("stage");
   const [resumeTemplate, setResumeTemplate] = useState("compact");
   const [resumeAccent, setResumeAccent] = useState(resumeAccents[0]);
   const [stageDraft, setStageDraft] = useState(createStageDraft(null));
   const [savingStageData, setSavingStageData] = useState(false);
   const [generatingCoach, setGeneratingCoach] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
   const [stageMessage, setStageMessage] = useState("");
   const [error, setError] = useState("");
 
   async function loadRuns() {
     try {
-      const [, runPayload] = await fetchInitialData();
+      const [cvPayload, runPayload] = await fetchInitialData();
+      const nextCvs = cvPayload.cvs || [];
       const nextRuns = runPayload.runs || [];
+      setCvs(nextCvs);
       setRuns(nextRuns);
       setSelectedRunId((currentId) => currentId || runId || nextRuns[0]?._id || "");
     } catch (loadError) {
@@ -61,8 +73,9 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
 
   useEffect(() => {
     setStageDraft(createStageDraft(selectedRun));
+    setRerunCvId(selectedRun?.cvId || cvs[0]?._id || "");
     setStageMessage("");
-  }, [selectedRun?._id]);
+  }, [cvs, selectedRun?._id, selectedRun?.cvId]);
 
   function updateRunInState(nextRun) {
     setRuns((current) =>
@@ -116,6 +129,25 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
     }
   }
 
+  async function rerunSelectedApplication() {
+    if (!selectedRun || !rerunCvId) return;
+
+    try {
+      setError("");
+      setIsRerunning(true);
+      setStageMessage("Re-running analysis...");
+      const payload = await rerunApplication(selectedRun._id, { cvId: rerunCvId });
+      updateRunInState(payload.run);
+      setStageMessage("Analysis refreshed.");
+      setActiveTab("analysis");
+    } catch (rerunError) {
+      setError(rerunError.message);
+      setStageMessage("");
+    } finally {
+      setIsRerunning(false);
+    }
+  }
+
   return (
     <main className="appShell pageShell">
       <button className="backButton" type="button" onClick={onBack}>
@@ -165,6 +197,37 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
             <BriefcaseBusiness size={18} />
             <p>{currentAction(selectedRun)}</p>
             {stageMessage ? <span>{stageMessage}</span> : null}
+          </section>
+
+          <section className="panel rerunPanel">
+            <div>
+              <h2>Re-run analysis</h2>
+              <p>Use this saved JD/link again with the same CV or a different uploaded CV.</p>
+            </div>
+            <label>
+              CV
+              <select
+                value={rerunCvId}
+                disabled={isRerunning}
+                onChange={(event) => setRerunCvId(event.target.value)}
+              >
+                {cvs.map((cv) => (
+                  <option key={cv._id} value={cv._id}>
+                    {cv.fileName}
+                    {cv._id === selectedRun.cvId ? " (current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="secondaryButton"
+              type="button"
+              disabled={!rerunCvId || isRerunning}
+              onClick={rerunSelectedApplication}
+            >
+              {isRerunning ? "Re-analyzing..." : "Re-run with selected CV"}
+            </button>
+            {isRerunning ? <AgentRunningProgress /> : null}
           </section>
 
           <section className="detailTabs">

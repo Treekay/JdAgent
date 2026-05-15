@@ -14,7 +14,7 @@ const agentProgressSteps = [
   "Generate Final Report"
 ];
 
-function AgentRunningProgress() {
+export function AgentRunningProgress() {
   return (
     <section className="agentRunningProgress" aria-live="polite">
       <div>
