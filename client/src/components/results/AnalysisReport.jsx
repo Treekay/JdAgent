@@ -10,6 +10,7 @@ import {
 import { Panel } from "../common/Panel.jsx";
 import { ScoreRing } from "../common/ScoreRing.jsx";
 import { EvidenceList } from "./EvidenceList.jsx";
+import { MarkdownPreview } from "./MarkdownPreview.jsx";
 import { RequirementList } from "./RequirementList.jsx";
 import { TracePanel } from "./TracePanel.jsx";
 
@@ -57,7 +58,9 @@ export function AnalysisReport({ result, showTrace, onToggleTrace }) {
       </Panel>
 
       <Panel icon={MessageSquareText} title="Final Report">
-        <pre className="letter compactReport">{result.finalReport}</pre>
+        <div className="markdownReport compactReport">
+          <MarkdownPreview content={result.finalReport} />
+        </div>
       </Panel>
 
       <section className="traceToggle">

@@ -158,22 +158,24 @@ export function ApplicationWorkspace({ onOpenRun }) {
         </p>
       </section>
 
-      <section className="dashboardStats">
-        {dashboardStatusFilters.map((applicationStatus) => (
-          <button
-            className={activeStatus === applicationStatus.id ? "active" : ""}
-            key={applicationStatus.id}
-            type="button"
-            onClick={() => {
-              setActiveStatus(applicationStatus.id);
-              setDashboardView("home");
-            }}
-          >
-            <strong>{statusCount(runs, applicationStatus.id)}</strong>
-            <span>{applicationStatus.label}</span>
-          </button>
-        ))}
-      </section>
+      {dashboardView === "home" ? (
+        <section className="dashboardStats">
+          {dashboardStatusFilters.map((applicationStatus) => (
+            <button
+              className={activeStatus === applicationStatus.id ? "active" : ""}
+              key={applicationStatus.id}
+              type="button"
+              onClick={() => {
+                setActiveStatus(applicationStatus.id);
+                setDashboardView("home");
+              }}
+            >
+              <strong>{statusCount(runs, applicationStatus.id)}</strong>
+              <span>{applicationStatus.label}</span>
+            </button>
+          ))}
+        </section>
+      ) : null}
 
       <section className="dashboardGrid">
         {dashboardView === "home" ? (

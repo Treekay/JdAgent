@@ -105,6 +105,101 @@
   cursor: not-allowed;
 }
 
+.agentRunningProgress {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #f8faf8;
+  border: 1px solid #dfe7e2;
+  border-radius: 8px;
+}
+
+.agentRunningProgress > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.agentRunningProgress strong {
+  color: #17211d;
+}
+
+.agentRunningProgress span {
+  color: #667970;
+  font-size: 0.86rem;
+}
+
+.agentProgressBar {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  background: #dbe5df;
+  border-radius: 999px;
+}
+
+.agentProgressBar span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 42%;
+  background: linear-gradient(90deg, #13a881, #73e1d5);
+  border-radius: inherit;
+  animation: agentProgressSweep 1.35s ease-in-out infinite;
+}
+
+.agentProgressSteps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.agentProgressSteps span {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 18px;
+  color: #425d54;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: agentStepPulse 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--step) * 160ms);
+}
+
+.agentProgressSteps span::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  background: #9fb7ad;
+  border-radius: 999px;
+  content: "";
+  transform: translateY(-50%);
+}
+
+@keyframes agentProgressSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  50% {
+    transform: translateX(85%);
+  }
+
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+@keyframes agentStepPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  35% {
+    opacity: 1;
+  }
+}
+
 .historyBlock {
   display: grid;
   gap: 12px;
@@ -184,15 +279,16 @@
 
 .recordItem > button:first-child {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 14px 14px 12px;
   text-align: left;
   color: #17211d;
   background: #f8faf8;
   border: 1px solid #e4ebe7;
   border-radius: 8px;
   cursor: pointer;
+  overflow: visible;
 }
 
 .applicationRowTop {
@@ -232,46 +328,64 @@
 }
 
 .applicationProgress {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  gap: 0;
   align-items: start;
+  margin-top: 12px;
+  padding: 10px 0 0;
+  overflow: visible;
 }
 
-.applicationProgress span {
+.applicationProgressTrack {
+  position: absolute;
+  z-index: 0;
+  top: 18px;
+  left: calc(12.5% + 8px);
+  width: calc(75% - 16px);
+  height: 3px;
+  overflow: hidden;
+  background: #dbe5df;
+  border-radius: 999px;
+}
+
+.applicationProgressTrack span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #13a881;
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+}
+
+.applicationProgress > span {
+  position: relative;
+  z-index: 2;
   display: grid;
-  gap: 4px;
+  justify-items: center;
+  gap: 8px;
   min-width: 0;
+  overflow: visible;
 }
 
 .applicationProgress i {
   position: relative;
   display: block;
-  height: 8px;
-  background: #dbe5df;
-  border-radius: 999px;
-}
-
-.applicationProgress i::before {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   background: #ffffff;
   border: 2px solid #9fb7ad;
   border-radius: 999px;
-  content: "";
-  transform: translate(-50%, -50%);
 }
 
-.applicationProgress span.complete i {
-  background: #bfe6db;
-}
-
-.applicationProgress span.complete i::before {
+.applicationProgress > span.complete i {
   background: #13a881;
   border-color: #13a881;
+}
+
+.applicationProgress > span.current i {
+  box-shadow: 0 0 0 5px rgba(19, 168, 129, 0.16);
 }
 
 .applicationProgress em {

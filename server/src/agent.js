@@ -421,8 +421,13 @@ export async function runApplicationAgent({ cvText, jobDescription, jobUrl = "" 
           "Compare the candidate profile to each job requirement.",
           "Return JSON with matches: array of {requirementId, status, evidence, rationale}.",
           "status must be matched, partial, or missing. evidence must quote or summarize concrete CV evidence.",
+          "Use semantic equivalence, not exact keyword matching. Treat common variants as equivalent when the CV evidence supports the same capability.",
+          "Examples: REST API, RESTful API, RESTful APIs, and REST services are equivalent; CI/CD and continuous integration/deployment are equivalent; Kubernetes and K8s are equivalent; AWS S3 and Amazon S3 are equivalent.",
+          "Mark a requirement as matched when the CV shows the same practical skill under a variant name. Mark partial when the CV shows related but incomplete evidence.",
           "",
           `CANDIDATE PROFILE:\n${JSON.stringify(candidateProfile)}`,
+          "",
+          `PARSED RESUME DETAILS:\n${JSON.stringify(parsedResume)}`,
           "",
           `JOB REQUIREMENTS:\n${JSON.stringify(jobRequirements)}`
         ].join("\n")

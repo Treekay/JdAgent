@@ -115,9 +115,24 @@
 
 .requirementItem small {
   flex: 0 0 auto;
-  color: #667970;
   font-size: 0.8rem;
   text-transform: capitalize;
+}
+
+.priorityBadge {
+  font-weight: 850;
+}
+
+.priorityBadge.high {
+  color: #d33b2f;
+}
+
+.priorityBadge.medium {
+  color: #c47b00;
+}
+
+.priorityBadge.low {
+  color: #12825f;
 }
 
 .requirementItem p,
@@ -140,6 +155,34 @@
   white-space: pre-wrap;
   color: #31443d;
   font-family: inherit;
+  font-size: 0.94rem;
+}
+
+.markdownReport {
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  color: #31443d;
+}
+
+.markdownReport h3,
+.markdownReport h4,
+.markdownReport p {
+  margin: 0;
+}
+
+.markdownReport h3 {
+  color: #17211d;
+  font-size: 1.08rem;
+}
+
+.markdownReport h4 {
+  margin-top: 6px;
+  color: #214c40;
+  font-size: 0.98rem;
+}
+
+.markdownReport p {
   font-size: 0.94rem;
 }
 

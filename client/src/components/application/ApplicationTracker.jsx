@@ -15,6 +15,20 @@ function statusIndex(run) {
   );
 }
 
+function progressStepClass(index, currentIndex) {
+  return [
+    index <= currentIndex ? "complete" : "",
+    index === currentIndex ? "current" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function progressRatio(run) {
+  const maxIndex = Math.max(1, applicationStatuses.length - 1);
+  return statusIndex(run) / maxIndex;
+}
+
 export function ApplicationTracker({
   activeStatus,
   onDeleteRun,
@@ -44,16 +58,20 @@ export function ApplicationTracker({
                   {run.createdAt ? formatRunDate(run.createdAt) : "No date"} -{" "}
                   {getRunStatusLabel(run)}
                 </small>
-                <div className="applicationProgress">
-                  {applicationStatuses.map((status, index) => (
-                    <span
-                      className={index <= statusIndex(run) ? "complete" : ""}
-                      key={status.id}
-                    >
-                      <i />
-                      <em>{status.label}</em>
-                    </span>
-                  ))}
+                <div className="applicationProgress" style={{ "--progress": progressRatio(run) }}>
+                  <div className="applicationProgressTrack" aria-hidden="true">
+                    <span />
+                  </div>
+                  {applicationStatuses.map((status, index) => {
+                    const currentIndex = statusIndex(run);
+
+                    return (
+                      <span className={progressStepClass(index, currentIndex)} key={status.id}>
+                        <i />
+                        <em>{status.label}</em>
+                      </span>
+                    );
+                  })}
                 </div>
               </button>
               <button

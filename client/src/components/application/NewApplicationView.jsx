@@ -3,6 +3,38 @@ import { ArrowLeft, Loader2, Send } from "lucide-react";
 import { CvManager } from "./CvManager.jsx";
 import { JobInput } from "./JobInput.jsx";
 
+const agentProgressSteps = [
+  "Parse Resume",
+  "Parse Job Description",
+  "Extract Candidate Profile",
+  "Extract Job Requirements",
+  "Match Requirements",
+  "Calculate Fit Score",
+  "Generate Recommendations",
+  "Generate Final Report"
+];
+
+function AgentRunningProgress() {
+  return (
+    <section className="agentRunningProgress" aria-live="polite">
+      <div>
+        <strong>AI analysis in progress</strong>
+        <span>Running the workflow step by step. This may take a moment.</span>
+      </div>
+      <div className="agentProgressBar">
+        <span />
+      </div>
+      <div className="agentProgressSteps">
+        {agentProgressSteps.map((step, index) => (
+          <span key={step} style={{ "--step": index }}>
+            {step}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function NewApplicationView({
   canRun,
   cvFile,
@@ -58,6 +90,7 @@ export function NewApplicationView({
             {isRunning ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
             Run AI Match
           </button>
+          {isRunning ? <AgentRunningProgress /> : null}
           {error ? <p className="error">{error}</p> : <p className="status">{status}</p>}
         </form>
       </section>
