@@ -104,6 +104,12 @@ export function updateRunStageData(id, stageData) {
   });
 }
 
+export function generateRunCoach(id) {
+  return apiJson(`/api/applications/runs/${id}/coach`, {
+    method: "POST"
+  });
+}
+
 export function runMatchAgent({ cvId, jobDescription, jobUrl }) {
   return apiJson("/api/applications/run", {
     method: "POST",

@@ -172,6 +172,71 @@ function AppliedDetail({ onDraftChange, onSave, result, run, saving, stageDraft 
   );
 }
 
+function CoachInsightsPanel({ coachInsights, generatingCoach, onGenerateCoach }) {
+  if (!coachInsights) {
+    return (
+      <section className="panel detailSinglePanel coachInsightsPanel">
+        <div className="stageFormHeader">
+          <h2>Coach Insight</h2>
+          <button disabled={generatingCoach} type="button" onClick={onGenerateCoach}>
+            {generatingCoach ? "Generating..." : "Generate coach"}
+          </button>
+        </div>
+        <p className="detailMuted">
+          Generate a stage-aware review after saving your latest application notes.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel detailSinglePanel coachInsightsPanel">
+      <div className="stageFormHeader">
+        <h2>Coach Insight</h2>
+        <button disabled={generatingCoach} type="button" onClick={onGenerateCoach}>
+          {generatingCoach ? "Refreshing..." : "Refresh coach"}
+        </button>
+      </div>
+      <strong>{coachInsights.headline || "Application coach review"}</strong>
+      {coachInsights.summary ? <p>{coachInsights.summary}</p> : null}
+      <div className="coachInsightGrid">
+        <section>
+          <h3>Strengths</h3>
+          <ul className="cleanList">
+            {(coachInsights.strengths || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3>Risks</h3>
+          <ul className="cleanList">
+            {(coachInsights.risks || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3>Next Actions</h3>
+          <ul className="cleanList">
+            {(coachInsights.nextActions || []).map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3>Focus Areas</h3>
+          <div className="keywordList">
+            {(coachInsights.focusAreas || []).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 function InterviewRoundEditor({ index, onChange, onRemove, round, showRemove }) {
   return (
     <section className="interviewRound">
@@ -376,7 +441,10 @@ function ResultDetail({ onDraftChange, onSave, result, saving, stageDraft }) {
 }
 
 export function StageContent({
+  coachInsights,
+  generatingCoach,
   onDraftChange,
+  onGenerateCoach,
   onOpenModule,
   onSaveStageData,
   result,
@@ -385,45 +453,66 @@ export function StageContent({
   stageDraft
 }) {
   const status = getRunStatus(run);
+  const coachPanel = (
+    <CoachInsightsPanel
+      coachInsights={coachInsights}
+      generatingCoach={generatingCoach}
+      onGenerateCoach={onGenerateCoach}
+    />
+  );
 
   if (status === "applied") {
     return (
-      <AppliedDetail
-        result={result}
-        run={run}
-        saving={saving}
-        stageDraft={stageDraft}
-        onDraftChange={onDraftChange}
-        onSave={onSaveStageData}
-      />
+      <>
+        <AppliedDetail
+          result={result}
+          run={run}
+          saving={saving}
+          stageDraft={stageDraft}
+          onDraftChange={onDraftChange}
+          onSave={onSaveStageData}
+        />
+        {coachPanel}
+      </>
     );
   }
 
   if (status === "interview") {
     return (
-      <InterviewDetail
-        result={result}
-        run={run}
-        saving={saving}
-        stageDraft={stageDraft}
-        onDraftChange={onDraftChange}
-        onSave={onSaveStageData}
-      />
+      <>
+        <InterviewDetail
+          result={result}
+          run={run}
+          saving={saving}
+          stageDraft={stageDraft}
+          onDraftChange={onDraftChange}
+          onSave={onSaveStageData}
+        />
+        {coachPanel}
+      </>
     );
   }
 
   if (status === "result") {
     return (
-      <ResultDetail
-        result={result}
-        run={run}
-        saving={saving}
-        stageDraft={stageDraft}
-        onDraftChange={onDraftChange}
-        onSave={onSaveStageData}
-      />
+      <>
+        <ResultDetail
+          result={result}
+          run={run}
+          saving={saving}
+          stageDraft={stageDraft}
+          onDraftChange={onDraftChange}
+          onSave={onSaveStageData}
+        />
+        {coachPanel}
+      </>
     );
   }
 
-  return <PreparingDetail result={result} run={run} onOpenModule={onOpenModule} />;
+  return (
+    <>
+      <PreparingDetail result={result} run={run} onOpenModule={onOpenModule} />
+      {coachPanel}
+    </>
+  );
 }

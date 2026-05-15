@@ -253,6 +253,19 @@ function normalizeApplicationAssets(value) {
   };
 }
 
+function normalizeCoachInsights(value, status) {
+  return {
+    status,
+    headline: text(value?.headline),
+    summary: text(value?.summary),
+    strengths: stringArray(value?.strengths).slice(0, 6),
+    risks: stringArray(value?.risks).slice(0, 6),
+    nextActions: stringArray(value?.nextActions).slice(0, 8),
+    focusAreas: stringArray(value?.focusAreas).slice(0, 6),
+    generatedAt: new Date().toISOString()
+  };
+}
+
 function legacyFields({
   matchedRequirements,
   missingRequirements,
@@ -268,6 +281,45 @@ function legacyFields({
     coverLetter: coverLetter || finalReport,
     interviewQuestions: interviewPrep
   };
+}
+
+export async function runCoachAgent(run) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is required to run the AI coach.");
+  }
+
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const status = text(run.applicationStatus) || "saved";
+  const result = run.result || {};
+
+  const parsed = await callJson(
+    client,
+    [
+      "Generate stage-aware career coach feedback for this job application.",
+      "Return JSON with headline, summary, strengths, risks, nextActions, focusAreas.",
+      "strengths, risks, nextActions, and focusAreas must be concise arrays.",
+      "Use the current application stage and user-entered stage data. Do not invent interview outcomes or facts.",
+      "For saved/preparing: focus on resume/JD fit gaps and application readiness.",
+      "For applied: focus on follow-up timing and interview preparation.",
+      "For interview: use interview rounds, questions, and feedback to identify weak answers and next prep.",
+      "For result: use outcome, reason, improvement areas, and reflection to produce a retrospective action plan.",
+      "",
+      JSON.stringify({
+        applicationStatus: status,
+        companyName: run.companyName || result.companyName || "",
+        roleTitle: run.roleTitle || result.roleTitle || "",
+        fitScore: result.fitScore || result.matchScore || 0,
+        matchedRequirements: (result.matchedRequirements || []).slice(0, 8),
+        missingRequirements: (result.missingRequirements || []).slice(0, 8),
+        recommendations: result.recommendations || [],
+        interviewPrep: result.interviewPrep || [],
+        stageData: run.stageData || {},
+        statusHistory: run.statusHistory || []
+      })
+    ].join("\n")
+  );
+
+  return normalizeCoachInsights(parsed, status);
 }
 
 export async function runApplicationAgent({ cvText, jobDescription, jobUrl = "" }) {

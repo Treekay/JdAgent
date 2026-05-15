@@ -9,6 +9,10 @@ function coachSummary(run, result) {
     return "Select a target job to see coach guidance.";
   }
 
+  if (run.coachInsights?.summary) {
+    return run.coachInsights.summary;
+  }
+
   const status = getRunStatus(run);
   const missing = (result.missingRequirements || []).slice(0, 2).map((item) => item.name);
 
@@ -60,6 +64,13 @@ export function AnalysisModulePage({ onOpenRun }) {
           <div className="coachNote">
             <strong>{selectedRun ? getRunTitle(selectedRun) : "No target selected"}</strong>
             <p>{coachSummary(selectedRun, result)}</p>
+            {selectedRun?.coachInsights?.nextActions?.length ? (
+              <ul className="cleanList">
+                {selectedRun.coachInsights.nextActions.slice(0, 3).map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           {selectedRun ? (
             <button className="secondaryButton" type="button" onClick={() => onOpenRun?.(selectedRun._id)}>

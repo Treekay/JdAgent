@@ -82,12 +82,12 @@ function sanitizeInterviewRounds(rounds) {
   }));
 }
 
-function sanitizeImprovementAreas(areas) {
-  if (!Array.isArray(areas)) {
+function sanitizeStringArray(items, maxItems = 8, maxLength = 200) {
+  if (!Array.isArray(items)) {
     return [];
   }
 
-  return areas.map((area) => sanitizeString(area, 80)).filter(Boolean).slice(0, 8);
+  return items.map((item) => sanitizeString(item, maxLength)).filter(Boolean).slice(0, maxItems);
 }
 
 function sanitizeStageValue(key, value) {
@@ -96,10 +96,23 @@ function sanitizeStageValue(key, value) {
   }
 
   if (key === "improvementAreas") {
-    return sanitizeImprovementAreas(value);
+    return sanitizeStringArray(value, 8, 80);
   }
 
   return typeof value === "string" ? sanitizeString(value) : value;
+}
+
+function sanitizeCoachInsights(insights = {}) {
+  return {
+    status: sanitizeString(insights.status, 40),
+    headline: sanitizeString(insights.headline, 220),
+    summary: sanitizeString(insights.summary, 1600),
+    strengths: sanitizeStringArray(insights.strengths, 6, 240),
+    risks: sanitizeStringArray(insights.risks, 6, 240),
+    nextActions: sanitizeStringArray(insights.nextActions, 8, 260),
+    focusAreas: sanitizeStringArray(insights.focusAreas, 6, 120),
+    generatedAt: sanitizeString(insights.generatedAt, 80) || new Date().toISOString()
+  };
 }
 
 export async function connectDatabase() {
@@ -405,6 +418,48 @@ export async function updateRunStageData(userId, id, updates = {}) {
 
   const run = await database.collection("runs").findOne(
     { _id, userId: toUserId(userId) },
+    {
+      projection: {
+        cvText: 0
+      }
+    }
+  );
+
+  if (!run) {
+    return null;
+  }
+
+  return serializeRun(run);
+}
+
+export async function getRun(userId, id) {
+  const database = await connectDatabase();
+  requireDatabase(database);
+
+  return database.collection("runs").findOne({
+    _id: toObjectId(id),
+    userId: toUserId(userId)
+  });
+}
+
+export async function saveRunCoachInsights(userId, id, insights) {
+  const database = await connectDatabase();
+  requireDatabase(database);
+
+  const _id = toObjectId(id);
+  const userObjectId = toUserId(userId);
+  await database.collection("runs").updateOne(
+    { _id, userId: userObjectId },
+    {
+      $set: {
+        coachInsights: sanitizeCoachInsights(insights),
+        updatedAt: new Date()
+      }
+    }
+  );
+
+  const run = await database.collection("runs").findOne(
+    { _id, userId: userObjectId },
     {
       projection: {
         cvText: 0

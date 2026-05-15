@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BriefcaseBusiness, ExternalLink } from "lucide-react";
-import { fetchInitialData, updateRunStage, updateRunStageData } from "../api.js";
+import { fetchInitialData, generateRunCoach, updateRunStage, updateRunStageData } from "../api.js";
 import { applicationStatuses, resumeAccents } from "../data.js";
 import {
   formatRunDate,
@@ -34,6 +34,7 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
   const [resumeAccent, setResumeAccent] = useState(resumeAccents[0]);
   const [stageDraft, setStageDraft] = useState(createStageDraft(null));
   const [savingStageData, setSavingStageData] = useState(false);
+  const [generatingCoach, setGeneratingCoach] = useState(false);
   const [stageMessage, setStageMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -97,6 +98,21 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
       setError(saveError.message);
     } finally {
       setSavingStageData(false);
+    }
+  }
+
+  async function generateCoach() {
+    if (!selectedRun) return;
+
+    try {
+      setGeneratingCoach(true);
+      const payload = await generateRunCoach(selectedRun._id);
+      updateRunInState(payload.run);
+      setStageMessage("Coach updated.");
+    } catch (coachError) {
+      setError(coachError.message);
+    } finally {
+      setGeneratingCoach(false);
     }
   }
 
@@ -172,11 +188,14 @@ export function ApplicationDetailPage({ runId, onBack, onOpenModule }) {
 
           {activeTab === "stage" ? (
             <StageContent
+              coachInsights={selectedRun.coachInsights}
+              generatingCoach={generatingCoach}
               result={result}
               run={selectedRun}
               saving={savingStageData}
               stageDraft={stageDraft}
               onDraftChange={updateStageDraft}
+              onGenerateCoach={generateCoach}
               onOpenModule={onOpenModule}
               onSaveStageData={saveStageData}
             />

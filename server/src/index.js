@@ -5,7 +5,7 @@ import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractCvText } from "./extractText.js";
-import { runApplicationAgent } from "./agent.js";
+import { runApplicationAgent, runCoachAgent } from "./agent.js";
 import {
   createSession,
   createUser,
@@ -14,11 +14,13 @@ import {
   deleteSession,
   findUserByCredentials,
   getCv,
+  getRun,
   getSessionUser,
   listCvs,
   listRuns,
   saveCv,
   saveRun,
+  saveRunCoachInsights,
   updateRunStageData,
   updateRunStatus
 } from "./database.js";
@@ -310,6 +312,27 @@ app.patch(
     }
 
     response.json({ run });
+  })
+);
+
+app.post(
+  "/api/applications/runs/:id/coach",
+  asyncRoute(async (request, response) => {
+    const run = await getRun(request.auth.user._id, request.params.id);
+
+    if (!run) {
+      response.status(404).json({ message: "Match record was not found." });
+      return;
+    }
+
+    const coachInsights = await runCoachAgent(run);
+    const updatedRun = await saveRunCoachInsights(
+      request.auth.user._id,
+      request.params.id,
+      coachInsights
+    );
+
+    response.json({ run: updatedRun, coachInsights });
   })
 );
 
