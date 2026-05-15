@@ -46,7 +46,7 @@ export const sampleResult = {
   tailoredResume:
     "## Targeted Resume Draft\n\n### Summary\nReact and Node developer with experience building user-facing AI workflow tools.\n\n### Selected Experience\n- Built React interfaces for document upload, job analysis, and agent workflow results.\n- Implemented Node and Express APIs for CV parsing and structured AI outputs.",
   coverLetter:
-    "Dear Hiring Manager,\n\nI am excited to apply for this role. My experience building React and Node applications aligns well with the responsibilities described, especially user-facing workflow tools and AI-assisted document generation.\n\nSincerely,",
+    "Dear Hiring Team,\n\nI hope you are well.\n\nI am writing to apply for this role. My recent work with React and Node applications seems relevant to the responsibilities described, particularly user-facing workflow tools and AI-assisted document generation.\n\nI would appreciate the opportunity to be considered and have attached my application materials for your review.\n\nBest regards,",
   interviewPrep: [
     "Prepare a short story about a React project that improved a user workflow.",
     "Be ready to explain how you validate AI-generated output before showing it to users."

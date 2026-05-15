@@ -18,6 +18,15 @@ import { applySemanticAliasMatches } from "./agent/semanticAliases.js";
 import { clip, stringArray, summarizeCount, text } from "./agent/text.js";
 import { makeTraceItem, runStep, WORKFLOW_STEPS } from "./agent/trace.js";
 
+const COVER_LETTER_TONE_GUIDE = [
+  "Cover letter tone guide:",
+  "- Write in a natural, concise, respectful professional tone, similar to a brief professional outreach email.",
+  "- Be warm but measured. Do not exaggerate, flatter, pressure the reader, or make claims stronger than the CV evidence supports.",
+  "- Avoid phrases like perfect fit, dream role, thrilled, uniquely qualified, or extensive experience unless the evidence clearly supports them.",
+  "- Use plain language and short paragraphs. Mention 1-2 specific overlaps with the role, then close politely.",
+  "- If no recruiter name is provided, address it to Hiring Team. Keep the letter around 160-240 words."
+].join("\n");
+
 export async function runCoachAgent(run) {
   const client = createOpenAIClient("AI coach");
   const status = text(run.applicationStatus) || "saved";
@@ -276,7 +285,8 @@ function finalReportStep({ agentTrace, candidateProfile, client, parsedJob, reco
         "Return JSON with finalReport, tailoredResume, coverLetter, and interviewPrep.",
         "finalReport must be a concise structured markdown report.",
         "tailoredResume must be a role-targeted resume draft in markdown using only truthful CV evidence.",
-        "coverLetter must be a polished cover letter tailored to the company and role.",
+        COVER_LETTER_TONE_GUIDE,
+        "coverLetter must be a tailored cover letter for the company and role, written under the tone guide above.",
         "interviewPrep must be an array of concise interview prep tips/questions for this job.",
         "",
         JSON.stringify({

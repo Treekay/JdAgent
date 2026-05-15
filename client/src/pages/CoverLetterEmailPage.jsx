@@ -8,14 +8,19 @@ function emailDraft(run, result) {
     return "";
   }
 
+  const roleTitle = result.roleTitle || getRunTitle(run);
+  const company = result.companyName ? ` at ${result.companyName}` : "";
+
   return [
-    `Subject: Application for ${result.roleTitle || getRunTitle(run)}`,
+    `Subject: Application for ${roleTitle}`,
     "",
     "Hi Hiring Team,",
     "",
-    `I hope you are well. I am applying for ${result.roleTitle || "this role"}${
-      result.companyName ? ` at ${result.companyName}` : ""
-    }, and I have attached my tailored resume and cover letter for your review.`,
+    "I hope you are well.",
+    "",
+    `I am writing to apply for the ${roleTitle}${company}. I have attached my resume and cover letter for your review.`,
+    "",
+    "The role looks closely aligned with the kind of work I am preparing for, and I would appreciate the opportunity to be considered.",
     "",
     "Thank you for your time and consideration.",
     "",
