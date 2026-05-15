@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/agent.js && node --check src/database.js && node --check src/extractText.js"
+    "check": "node --check src/index.js && node --check src/agent.js && node --check src/agent/llm.js && node --check src/agent/normalizers.js && node --check src/agent/scoring.js && node --check src/agent/semanticAliases.js && node --check src/agent/text.js && node --check src/agent/trace.js && node --check src/database.js && node --check src/extractText.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
